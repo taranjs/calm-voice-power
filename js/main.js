@@ -27,7 +27,7 @@ import { renderPauseChallenge } from './games/pauseChallenge.js';
 async function boot() {
   // Register service worker
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 
   // Open DB & load state

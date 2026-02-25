@@ -90,10 +90,7 @@ Right-click `index.html` → Open with Live Server
 5. Click **Save**
 6. Your app will be live at `https://YOUR_USERNAME.github.io/calm-voice-power/`
 
-**Important for GitHub Pages:** Update `sw.js` ASSETS paths to include your repo name prefix if deploying to a subdirectory, e.g.:
-```js
-const ASSETS = ['/calm-voice-power/', '/calm-voice-power/index.html', ...]
-```
+`sw.js` now uses relative asset paths, so it works on GitHub Pages subdirectory deployments without manual repo-name prefix edits.
 
 ## Psychological Principles
 
