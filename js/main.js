@@ -25,9 +25,22 @@ import { renderStretchySpeech } from './games/stretchySpeech.js';
 import { renderPauseChallenge } from './games/pauseChallenge.js';
 
 async function boot() {
-  // Register service worker
+  // Register service worker (disable cache layer during localhost dev)
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    const isLocalhost =
+      location.hostname === 'localhost' ||
+      location.hostname === '127.0.0.1';
+
+    if (isLocalhost) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(reg => reg.unregister()));
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map(key => caches.delete(key)));
+      }
+    } else {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
   }
 
   // Open DB & load state

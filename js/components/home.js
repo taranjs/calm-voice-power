@@ -92,8 +92,9 @@ export function renderHome() {
     el.innerHTML = `
       <div class="challenge-check">${ch.done ? '✅' : ''}</div>
       <span class="challenge-icon">${ch.icon}</span>
-      <span class="challenge-text">${ch.text}</span>
+      <span class="challenge-text"></span>
     `;
+    el.querySelector('.challenge-text').textContent = ch.text;
     cPrev.appendChild(el);
   });
 

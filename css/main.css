@@ -198,6 +198,32 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--ink-soft); }
   font-size: 2.5rem;
 }
 .breath-label { text-align: center; font-family: var(--font-display); font-size: 1.6rem; color: var(--sky); min-height: 40px; }
+.breath-chips {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.breath-chip {
+  border: 2px solid var(--sky-light);
+  background: var(--cloud);
+  color: var(--ink-soft);
+  border-radius: var(--radius-full);
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  font-family: var(--font-body);
+  transition: all var(--t-fast);
+}
+.breath-chip.active {
+  background: var(--sky-light);
+  color: var(--sky);
+  border-color: var(--sky);
+}
+.breath-chip:disabled {
+  opacity: 0.65;
+}
 .breath-progress { height: 8px; border-radius: 4px; background: var(--sky-light); overflow: hidden; margin: 16px 0; }
 .breath-progress-fill { height: 100%; background: var(--sky); border-radius: 4px; transition: width 0.5s linear; }
 
@@ -267,6 +293,43 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--ink-soft); }
 .challenge-item.done .challenge-check { background: var(--mint); border-color: var(--mint); }
 .challenge-text { font-weight: 700; font-size: 0.95rem; }
 .challenge-icon { font-size: 1.4rem; }
+.challenge-delete {
+  margin-left: auto;
+  border: 2px solid var(--sky-light);
+  background: var(--cloud);
+  color: var(--ink-faint);
+  border-radius: var(--radius-full);
+  min-width: 36px;
+  height: 36px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+.challenge-delete:active {
+  transform: scale(0.96);
+}
+.challenge-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.challenge-input {
+  flex: 1;
+  min-height: 44px;
+  border: 2px solid var(--sky-light);
+  border-radius: var(--radius-full);
+  background: var(--cloud);
+  color: var(--ink);
+  padding: 0 14px;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+}
+.challenge-input::placeholder {
+  color: var(--ink-faint);
+}
+.challenge-input:focus {
+  outline: none;
+  border-color: var(--sky);
+}
 
 /* ── REWARDS ─────────────────────────────────── */
 .coin-display {
