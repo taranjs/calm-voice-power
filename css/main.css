@@ -355,6 +355,98 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--ink-soft); }
   background: var(--lavender); color: white; border-radius: var(--radius-full);
   padding: 2px 6px; font-weight: 700;
 }
+.reward-add-btn {
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--sky-light);
+  border-radius: var(--radius-full);
+  background: var(--cloud);
+  color: var(--sky);
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+.reward-add-btn:active {
+  transform: scale(0.95);
+}
+.custom-reward-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.custom-reward-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--cloud);
+  border: 2px solid var(--sky-light);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+.custom-reward-name {
+  font-weight: 800;
+  color: var(--ink);
+}
+.custom-reward-cost {
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+  font-weight: 700;
+}
+.custom-reward-redeemed {
+  font-size: 0.78rem;
+  color: var(--mint);
+  font-weight: 800;
+  margin-top: 2px;
+}
+.custom-reward-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.custom-reward-actions .btn {
+  min-height: 38px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+}
+.reward-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(45, 58, 74, 0.45);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 14px;
+}
+.reward-modal-backdrop[hidden] {
+  display: none !important;
+}
+.reward-modal {
+  width: min(480px, 100%);
+  border-radius: var(--radius-lg);
+  background: var(--cloud);
+  border: 2px solid var(--sky-light);
+}
+.reward-field {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--ink-soft);
+  margin-bottom: 6px;
+}
+.reward-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.reward-modal-actions .btn {
+  min-height: 42px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+}
 
 /* ── AVATAR BUILDER ──────────────────────────── */
 .avatar-preview {

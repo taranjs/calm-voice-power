@@ -13,6 +13,7 @@ export const state = {
   emotionAfter: null,
   sessions: [],
   todayChallenges: [],
+  customRewards: [],
   unlockedAvatars: ['🐱'],
   totalMinutes: 0,
 };
@@ -40,6 +41,7 @@ export async function loadState() {
   state.totalMinutes  = await getSetting('totalMinutes', 0);
   state.sessions      = await dbGetAll('sessions');
   state.todayChallenges = await getSetting('todayChallenges', defaultChallenges());
+  state.customRewards = await getSetting('customRewards', []);
   // Reset challenges daily
   const lastDay = await getSetting('lastDay', '');
   const today   = new Date().toDateString();
@@ -60,6 +62,7 @@ export async function saveState() {
   await setSetting('unlockedAvatars', state.unlockedAvatars);
   await setSetting('totalMinutes', state.totalMinutes);
   await setSetting('todayChallenges', state.todayChallenges);
+  await setSetting('customRewards', state.customRewards);
 }
 
 async function checkStreak(lastDay, today) {
