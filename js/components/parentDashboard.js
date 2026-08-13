@@ -33,7 +33,8 @@ export function renderParentDashboard() {
     const d = new Date(now);
     d.setDate(d.getDate() - (6 - i));
     const dateStr = d.toDateString();
-    const daySessions = sessions.filter(s => new Date(s.date).toDateString() === dateStr);
+    const daySessions = sessions.filter(s =>
+      s.type !== 'session' && new Date(s.date).toDateString() === dateStr);
     return { label: days[d.getDay() === 0 ? 6 : d.getDay()-1], count: daySessions.length };
   });
 
@@ -91,8 +92,8 @@ export function renderParentDashboard() {
 
     <!-- Weekly chart -->
     <div class="card mb-16">
-      <h3 style="margin-bottom:4px">Sessions This Week</h3>
-      <p style="font-size:0.8rem;color:var(--ink-faint);margin-bottom:12px">Number of practice sessions per day</p>
+      <h3 style="margin-bottom:4px">Practice This Week</h3>
+      <p style="font-size:0.8rem;color:var(--ink-faint);margin-bottom:12px">Activities completed per day</p>
       <div class="chart-bar-wrap" id="week-chart"></div>
     </div>
 

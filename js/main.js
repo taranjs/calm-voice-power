@@ -22,6 +22,8 @@ import { renderGamesHub }          from './components/gamesHub.js';
 import { renderVoiceJournal }      from './components/voiceJournal.js';
 import { renderVoiceSetup }        from './components/voiceSetup.js';
 import { renderVoicePowers }       from './components/voicePowers.js';
+import { renderSessionDone }       from './components/sessionDone.js';
+import { renderSessionBar }        from './components/sessionBar.js';
 
 // Games
 import { renderGentleOnset }   from './games/gentleOnset.js';
@@ -59,12 +61,16 @@ async function boot() {
   app.innerHTML = `
     <main id="app-content" role="main" aria-live="polite"></main>
   `;
-  const nav = renderNav();
-  app.appendChild(nav);
+  app.appendChild(renderSessionBar());
+  app.appendChild(renderNav());
 
   // Register routes
   route('home',          renderHome);
   route('emotion-check', () => renderEmotionCheck({ mode: 'before' }));
+  // The 'after' check-in was never routed, so logSession() never ran with an
+  // emotion and the parent dashboard's trend read an empty table forever.
+  route('emotion-after',  () => renderEmotionCheck({ mode: 'after' }));
+  route('session-done',   renderSessionDone);
   route('streak',        renderStreakRoad);
   route('breathing',     renderBreathingSession);
   route('pacing',        renderPacingDots);

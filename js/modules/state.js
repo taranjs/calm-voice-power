@@ -54,6 +54,57 @@ export const state = {
   repsToday: { date: null, counts: {} },
 };
 
+// ── Sessions ─────────────────────────────────────
+// A "session" is check-in → a few activities → check-out. Until now the
+// check-in button navigated straight back to the home screen, the "after"
+// check-in was unreachable from any route, and so logSession() never ran with
+// an emotion attached: the Parent Dashboard's emotion trend has always been
+// dead code reading an empty table.
+const SESSION_TARGET = 3;
+
+export const session = {
+  active: false,
+  emotionBefore: null,
+  done: [],
+  startedAt: null,
+};
+
+export function startSession(emotionBefore = null) {
+  session.active = true;
+  session.emotionBefore = emotionBefore;
+  session.done = [];
+  session.startedAt = Date.now();
+  emit('sessionChanged', session);
+  return session;
+}
+
+export function sessionTarget() { return SESSION_TARGET; }
+
+/** Returns true once he has done enough for a check-out to make sense. */
+export function noteSessionActivity(activity) {
+  if (!session.active) return false;
+  if (!session.done.includes(activity)) session.done.push(activity);
+  emit('sessionChanged', session);
+  return session.done.length >= SESSION_TARGET;
+}
+
+export async function endSession(emotionAfter = null) {
+  const payload = {
+    type: 'session',
+    emotionBefore: session.emotionBefore,
+    emotionAfter,
+    activities: [...session.done],
+    durationMs: session.startedAt ? Date.now() - session.startedAt : 0,
+  };
+  await logSession(payload);
+  session.active = false;
+  session.done = [];
+  session.emotionBefore = null;
+  session.startedAt = null;
+  emit('sessionChanged', session);
+  return payload;
+}
+
 // ── Rewards ──────────────────────────────────────
 /**
  * Pay for one completed repetition, tapering after the first few today.
@@ -194,9 +245,10 @@ export async function recordPractice(activity = 'practice', meta = {}) {
   await setSetting('bestStreak', state.bestStreak);
 
   // Gives the parent dashboard something real to chart.
-  await logSession({ activity, ...meta });
+  await logSession({ type: 'activity', activity, ...meta });
 
-  emit('practiceLogged', { activity, isNewDay, streak: state.streak });
+  const sessionComplete = noteSessionActivity(activity);
+  emit('practiceLogged', { activity, isNewDay, streak: state.streak, sessionComplete });
   return { isNewDay, streak: state.streak, totalDays: state.practiceDays.length };
 }
 

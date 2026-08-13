@@ -69,6 +69,7 @@ body::before {
   flex-direction: column;
   padding-bottom: 80px;
 }
+#app.session-on { padding-bottom: 136px; }
 
 /* ── TYPOGRAPHY ─────────────────────────────── */
 h1 { font-family: var(--font-display); font-size: clamp(1.8rem, 7vw, 2.4rem); color: var(--ink); line-height: 1.1; }
@@ -300,6 +301,36 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--ink-soft); }
   color: var(--ink-faint); min-height: 22px; margin: 0;
 }
 .mic-status.good { color: var(--mint); }
+
+/* ── SESSION BAR ─────────────────────────────── */
+#session-bar {
+  position: fixed; bottom: 70px; left: 0; right: 0;
+  max-width: 480px; margin: 0 auto; z-index: 99;
+  background: var(--lavender-light);
+  border-top: 2px solid var(--lavender);
+  animation: fadeUp 0.3s ease;
+}
+#session-bar[hidden] { display: none !important; }
+#session-bar.complete { background: var(--mint-light); border-top-color: var(--mint); }
+.session-bar-inner { display: flex; align-items: center; gap: 10px; padding: 9px 14px; }
+.session-bar-label { flex: 1; font-weight: 800; font-size: 0.85rem; color: var(--ink-soft); }
+.session-pips { display: flex; gap: 5px; }
+.session-pip {
+  width: 11px; height: 11px; border-radius: 50%;
+  background: var(--cloud); border: 2px solid var(--lavender);
+  transition: background var(--t-med);
+}
+.session-pip.on { background: var(--lavender); }
+#session-bar.complete .session-pip { border-color: var(--mint); }
+#session-bar.complete .session-pip.on { background: var(--mint); }
+.session-bar-btn {
+  border: 2px solid var(--lavender); background: var(--cloud); color: var(--ink);
+  border-radius: var(--radius-full); padding: 7px 14px;
+  font-family: var(--font-body); font-weight: 800; font-size: 0.8rem;
+  cursor: pointer; min-height: 36px; touch-action: manipulation;
+}
+#session-bar.complete .session-bar-btn { border-color: var(--mint); background: var(--mint); color: var(--white); }
+.session-bar-btn:active { transform: scale(0.95); }
 
 /* ── VOICE POWERS ────────────────────────────── */
 .power-card { padding: 16px 18px; }

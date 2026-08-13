@@ -4,9 +4,15 @@ A mobile-first Progressive Web App for children (ages 6-10) to build speech flue
 
 ## Features
 
-- **Voice-driven practice** – The microphone is the controller. Word Stretch, Stretchy
-  Speech and Gentle Start all respond to the child's actual voice, so nothing can be
-  earned by tapping in silence.
+- **Voice-driven practice** – The microphone is the controller. Every scoring activity
+  responds to the child's actual voice, so nothing can be earned by tapping in silence.
+  Pause Power times real silence between real speech; Pacing Dots only credits a beat
+  he voiced.
+- **My Voice Powers** – Four powers that level up from his own measurements (onset
+  softness, longest hold, longest pause, beats in a row), written in language a
+  seven-year-old can act on.
+- **Practice sessions** – Check in → three activities → check out, with a progress bar
+  and a completion screen. This is what feeds the Parent Dashboard's emotion trend.
 - **Spoken models** – Every target can be heard before it's attempted (`speechSynthesis`
   at slow rate, plus a soft-attack tone that models an easy onset).
 - **Confidence Road** – Cumulative record of every day practised. It only ever grows.
@@ -17,7 +23,8 @@ A mobile-first Progressive Web App for children (ages 6-10) to build speech flue
 - **Word Stretch** – Letters pull apart in time with sustained voicing
 - **Mini Games** – Gentle Onset, Stretchy Speech, Pause Challenge
 - **Daily Challenges** – Real-world brave tries
-- **Rewards & Avatar** – Coins, unlockable avatars, customization
+- **Rewards & Avatar** – Coins (tapering per activity per day, plus a daily
+  first-practice bonus), unlockable avatars, customization
 - **Emotion Check-In** – Before/after emoji scale
 - **Parent Dashboard** – Weekly chart, trends, coaching tips
 - **Offline support** – Full service worker caching
@@ -69,7 +76,18 @@ line then moves as he earns it — successive approximation, the way shaping wor
 therapy. There's a test for exactly this in the suite.
 
 The Parent Dashboard charts the trend, which is the only number in the app that tracks
-the speech target rather than engagement.
+the speech target rather than engagement. `components/voicePowers.js` shows the child
+his own version of the same thing.
+
+## Coin economy
+
+`awardRep(activity, base)` pays full price for the first three reps of an activity each
+day, then tapers to a floor of 1. Eight reps of one activity pays 26 coins rather than
+40. `recordPractice()` adds a 15-coin bonus for the first practice of the day.
+
+The point isn't balance, it's the overjustification effect: dense per-rep rewards crowd
+out the intrinsic motivation they're meant to support, and when they saturate, interest
+lands *below* where it started. Coming back at all is the behaviour worth paying for.
 
 ## Data & future sync
 

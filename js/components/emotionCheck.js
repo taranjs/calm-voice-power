@@ -1,5 +1,5 @@
 // js/components/emotionCheck.js
-import { state, setState, saveState, logSession } from '../modules/state.js';
+import { state, setState, saveState, startSession, endSession, session } from '../modules/state.js';
 import { navigate } from '../modules/router.js';
 import { playSuccess, playClick } from '../modules/audio.js';
 import { toast } from '../modules/toast.js';
@@ -17,11 +17,14 @@ export function renderEmotionCheck({ mode = 'before', onDone } = {}) {
   page.className = 'page';
 
   const isBefore = mode === 'before';
+  const didCount = session.done.length;
   page.innerHTML = `
     <div class="page-header text-center">
       <div style="font-size:3rem;margin-bottom:8px">${isBefore ? '🤔' : '🌟'}</div>
       <h2>${isBefore ? 'How are you feeling?' : 'How do you feel now?'}</h2>
-      <p class="mt-8">${isBefore ? 'Before your practice today' : 'After your practice – well done!'}</p>
+      <p class="mt-8">${isBefore
+        ? 'Before your practice today'
+        : `After ${didCount || 'your'} brave ${didCount === 1 ? 'activity' : 'activities'} – well done!`}</p>
     </div>
 
     <div class="card text-center mt-24">
@@ -65,22 +68,30 @@ export function renderEmotionCheck({ mode = 'before', onDone } = {}) {
     playSuccess();
     if (isBefore) {
       setState({ emotionBefore: selected });
+      startSession(selected);
       await saveState();
-      navigate('home');
-      toast('Let\'s have a great session! 🌟', 'success');
+      // Straight into the practice tools. This used to navigate to 'home',
+      // so the button labelled "Start My Practice" started nothing at all.
+      navigate('practice');
+      toast('Let\'s do three things together! 🌟', 'success');
     } else {
       setState({ emotionAfter: selected });
-      await logSession({ emotionBefore: state.emotionBefore, emotionAfter: selected, date: new Date().toISOString() });
+      const logged = await endSession(selected);
       await saveState();
       if (onDone) onDone();
-      else navigate('home');
-      toast('Amazing session! You\'re so brave! 🎉', 'success');
+      else navigate('session-done', { ...logged, emotionAfter: selected });
     }
   });
 
-  page.querySelector('#skip-emotion').addEventListener('click', () => {
+  page.querySelector('#skip-emotion').addEventListener('click', async () => {
     playClick();
-    navigate('home');
+    if (isBefore) {
+      startSession(null);
+      navigate('practice');
+    } else {
+      await endSession(null);
+      navigate('home');
+    }
   });
 
   return page;
