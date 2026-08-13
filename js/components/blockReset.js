@@ -1,7 +1,13 @@
 // js/components/blockReset.js
+// The word stretches because *he* is stretching it. Previously the app played
+// the animation for him and paid out coins for watching it – he could earn the
+// entire shop by tapping one button without making a sound.
 import { navigate } from '../modules/router.js';
-import { addCoins, saveState } from '../modules/state.js';
+import { addCoins, saveState, recordPractice } from '../modules/state.js';
 import { playTone, playSuccess, playClick } from '../modules/audio.js';
+import { speakModel, cancelSpeech, isSpeechSupported } from '../modules/speech.js';
+import { acquireMic, releaseMic, isMicSupported, calibrateNoiseFloor, createVoiceTracker } from '../modules/voice.js';
+import { createMicPanel } from '../components/micPanel.js';
 import { toast, praiseToast } from '../modules/toast.js';
 
 const POWER_WORDS = [
@@ -9,10 +15,15 @@ const POWER_WORDS = [
   'GENTLE', 'SOFT', 'BRAVE', 'STRONG', 'READY'
 ];
 
+const FULL_STRETCH_MS = 2000;   // sustained voicing for a complete stretch
+const MAX_GAP_PX = 22;
+
 export function renderBlockReset() {
   const page = document.createElement('div');
   page.className = 'page';
-  let wordIdx = 0, stretching = false;
+
+  let wordIdx = 0, listening = false, micReady = false, loggedToday = false;
+  let tracker = null, lastLit = -1;
 
   page.innerHTML = `
     <div class="page-header flex-between">
@@ -21,9 +32,13 @@ export function renderBlockReset() {
     </div>
 
     <div class="card text-center mb-16">
-      <p style="margin-bottom:8px;font-size:0.9rem;color:var(--ink-faint)">Stretch this word out like taffy!</p>
+      <p style="margin-bottom:8px;font-size:0.9rem;color:var(--ink-faint)">Say this word and hold it – your voice pulls it apart!</p>
       <div class="block-reset-word" id="word-letters"></div>
-      <p style="font-size:0.85rem;color:var(--sky);margin-top:8px" id="hint-text">Tap STRETCH to begin</p>
+      <div class="prog-bar mt-8" style="height:10px">
+        <div class="prog-fill" id="stretch-prog" style="width:0%;transition:none"></div>
+      </div>
+      <div id="mic-slot"></div>
+      <p style="font-size:0.85rem;color:var(--sky);margin-top:8px" id="hint-text">Tap Stretch and hold the sound</p>
     </div>
 
     <div class="card card-soft text-center mb-16">
@@ -34,65 +49,184 @@ export function renderBlockReset() {
       </p>
     </div>
 
-    <div class="flex-center gap-12 flex-wrap">
-      <button class="btn btn-primary btn-lg" id="stretch-btn">🌈 Stretch!</button>
-      <button class="btn btn-ghost" id="next-word-btn">Next Word →</button>
+    <div class="action-stack">
+      <button class="btn btn-primary btn-lg" id="stretch-btn">🎤 Stretch!</button>
+      <div class="action-row">
+        <button class="btn btn-ghost" id="model-btn">🔊 Hear it</button>
+        <button class="btn btn-ghost" id="next-word-btn">Next Word →</button>
+      </div>
     </div>
 
     <div class="mt-24 card card-lavender text-center" style="display:none" id="praise-box">
       <div style="font-size:2.5rem">🎉</div>
       <p style="font-weight:800;margin-top:8px">Beautiful stretched word!</p>
-      <p style="font-size:0.85rem;margin-top:4px">That's exactly how calm speakers talk.</p>
+      <p style="font-size:0.85rem;margin-top:4px" id="praise-detail">That's exactly how calm speakers talk.</p>
     </div>
   `;
 
+  const lettersEl  = page.querySelector('#word-letters');
+  const hintText   = page.querySelector('#hint-text');
+  const praiseBox  = page.querySelector('#praise-box');
+  const praiseNote = page.querySelector('#praise-detail');
+  const progFill   = page.querySelector('#stretch-prog');
+  const stretchBtn = page.querySelector('#stretch-btn');
+  const modelBtn   = page.querySelector('#model-btn');
+
+  const mic = createMicPanel({ status: 'Tap Stretch and I’ll listen 👂' });
+  page.querySelector('#mic-slot').appendChild(mic.el);
+
+  if (!isSpeechSupported()) modelBtn.style.display = 'none';
+
+  function currentWord() { return POWER_WORDS[wordIdx]; }
+
   function loadWord() {
-    const word = POWER_WORDS[wordIdx];
-    const lettersEl = page.querySelector('#word-letters');
-    lettersEl.innerHTML = word.split('').map((l, i) =>
-      `<span class="stretch-letter" data-i="${i}" style="transition-delay:${i*0.06}s">${l}</span>`
+    lettersEl.innerHTML = currentWord().split('').map((l, i) =>
+      `<span class="stretch-letter" data-i="${i}">${l}</span>`
     ).join('');
-    page.querySelector('#hint-text').textContent = 'Tap STRETCH to begin';
-    page.querySelector('#praise-box').style.display = 'none';
-    stretching = false;
+    lettersEl.style.gap = '4px';
+    progFill.style.width = '0%';
+    hintText.textContent = 'Tap Stretch and hold the sound';
+    praiseBox.style.display = 'none';
+    lastLit = -1;
+    mic.reset();
+    mic.setStatus('Tap Stretch and I’ll listen 👂');
   }
 
-  async function doStretch() {
-    if (stretching) return;
-    stretching = true;
-    playClick();
-    const letters = page.querySelectorAll('.stretch-letter');
+  /** Drive the visual straight from how long he has sustained the sound. */
+  function applyStretch(voicedMs) {
+    const amount = Math.min(voicedMs / FULL_STRETCH_MS, 1);
+    lettersEl.style.gap = `${4 + amount * MAX_GAP_PX}px`;
+    progFill.style.width = `${amount * 100}%`;
 
-    // Animate one by one with tone
-    letters.forEach((l, i) => {
-      setTimeout(() => {
-        l.classList.add('stretching');
-        playTone(330 + i * 30, 0.25, 'sine', 0.12);
-      }, i * 150);
-    });
+    const letters = lettersEl.querySelectorAll('.stretch-letter');
+    const lit = Math.floor(amount * letters.length);
+    letters.forEach((l, i) => l.classList.toggle('stretching', i < lit));
 
-    page.querySelector('#hint-text').textContent = 'Saaaay it slowly… 🐢';
+    // One soft rising note per letter as his voice reaches it.
+    if (lit > lastLit && lit > 0 && lit <= letters.length) {
+      playTone(330 + (lit - 1) * 30, 0.2, 'sine', 0.08);
+      lastLit = lit;
+    }
+    return amount;
+  }
 
-    setTimeout(async () => {
-      letters.forEach(l => l.classList.remove('stretching'));
+  async function ensureMic() {
+    if (micReady) return true;
+    if (!isMicSupported()) return false;
+    try {
+      await acquireMic();
+      mic.setStatus('Listening to the room for a second…');
+      await calibrateNoiseFloor(600);
+      micReady = true;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  async function finishTake() {
+    listening = false;
+    mic.listening(false);
+    tracker?.stop();
+    stretchBtn.disabled = false;
+    stretchBtn.textContent = '🎤 Stretch!';
+
+    const held = tracker?.voicedMs || 0;
+    const amount = Math.min(held / FULL_STRETCH_MS, 1);
+
+    if (!tracker?.everVoiced) {
+      hintText.textContent = 'I couldn’t hear that one – try a bit closer 🎤';
+      mic.setStatus('Ready when you are 💙');
+      return;
+    }
+
+    if (amount >= 1) {
       playSuccess();
       praiseToast();
-      page.querySelector('#praise-box').style.display = '';
-      await addCoins(5); await saveState();
+      praiseBox.style.display = '';
+      praiseNote.textContent = `You held “${currentWord()}” for ${(held / 1000).toFixed(1)} seconds!`;
+      hintText.textContent = 'You stretched the whole word! ✨';
+      mic.setStatus('That was a lovely long one 🌈', 'good');
+      if (!loggedToday) {
+        loggedToday = true;
+        await recordPractice('word-stretch');
+      }
+      await addCoins(5);
+      await saveState();
       toast('🪙 +5 coins! So smooth!', 'reward');
-      stretching = false;
-    }, letters.length * 150 + 1800);
+    } else {
+      hintText.textContent = `You stretched ${Math.round(amount * 100)}% of it – hold the sound a bit longer 🐢`;
+      mic.setStatus('Nearly! Keep the sound going', '');
+    }
+  }
+
+  async function startTake() {
+    if (listening) return;
+    playClick();
+    cancelSpeech();
+    praiseBox.style.display = 'none';
+    lastLit = -1;
+
+    const ok = await ensureMic();
+    if (!ok) {
+      mic.setStatus('No microphone here – stretch it out loud anyway! 💙');
+      hintText.textContent = 'Say it slowly and stretched, then tap Next Word.';
+      return;
+    }
+
+    listening = true;
+    mic.listening(true);
+    stretchBtn.disabled = true;
+    stretchBtn.textContent = 'Listening…';
+    hintText.textContent = 'Saaaay it slowly… 🐢';
+    mic.setStatus('Go! Hold the sound 🌈', 'good');
+
+    tracker = createVoiceTracker({
+      silenceToEndMs: 800,
+      onFrame: ({ level, threshold, voicedMs }) => {
+        mic.setLevel(level, threshold);
+        applyStretch(voicedMs);
+      },
+      onSettled: finishTake,
+    });
+    tracker.reset();
+    tracker.start();
+
+    setTimeout(() => { if (listening) finishTake(); }, 12000);
   }
 
   loadWord();
 
-  page.querySelector('#stretch-btn').addEventListener('click', doStretch);
+  stretchBtn.addEventListener('click', startTake);
+
+  modelBtn.addEventListener('click', async () => {
+    playClick();
+    modelBtn.disabled = true;
+    mic.setStatus('Hear how long that sound lasts… 🔊');
+    await speakModel(currentWord(), { rate: 0.4 });
+    modelBtn.disabled = false;
+    mic.setStatus('Now your turn 👂');
+  });
+
   page.querySelector('#next-word-btn').addEventListener('click', () => {
     playClick();
+    cancelSpeech();
+    tracker?.stop();
+    listening = false;
+    mic.listening(false);
+    stretchBtn.disabled = false;
+    stretchBtn.textContent = '🎤 Stretch!';
     wordIdx = (wordIdx + 1) % POWER_WORDS.length;
     loadWord();
   });
+
   page.querySelector('#exit-btn').addEventListener('click', () => { playClick(); navigate('home'); });
+
+  page.__cleanup = () => {
+    tracker?.stop();
+    cancelSpeech();
+    if (micReady) releaseMic();
+  };
 
   return page;
 }

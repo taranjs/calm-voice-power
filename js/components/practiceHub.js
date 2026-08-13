@@ -9,6 +9,7 @@ const TOOLS = [
   { route: 'recorder',    icon: '🎙️', label: 'Record Me!',    sub: 'Hear your brave voice',    color: 'var(--mint)',     bg: 'var(--mint-light)' },
   { route: 'block-reset', icon: '✨', label: 'Word Stretch',  sub: 'Gently unstick words',     color: 'var(--lavender)', bg: 'var(--lavender-light)' },
   { route: 'challenges',  icon: '🌍', label: 'Real Challenges', sub: 'Brave everyday tries',   color: 'var(--coral)',    bg: '#FFE8E4' },
+  { route: 'journal',     icon: '🎧', label: 'Voice Journal',   sub: 'Hear how far you\'ve come', color: 'var(--sun-warm)', bg: '#FFF3CC' },
 ];
 
 export function renderPracticeHub() {

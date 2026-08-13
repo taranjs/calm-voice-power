@@ -4,11 +4,17 @@ A mobile-first Progressive Web App for children (ages 6-10) to build speech flue
 
 ## Features
 
-- **Confidence Road** – Visual streak tracker journey
+- **Voice-driven practice** – The microphone is the controller. Word Stretch, Stretchy
+  Speech and Gentle Start all respond to the child's actual voice, so nothing can be
+  earned by tapping in silence.
+- **Spoken models** – Every target can be heard before it's attempted (`speechSynthesis`
+  at slow rate, plus a soft-attack tone that models an easy onset).
+- **Confidence Road** – Cumulative record of every day practised. It only ever grows.
 - **3-Min Calm Breath** – Guided breathing animation
 - **Pacing Dots** – Speech rhythm trainer
-- **Record Me!** – Web Audio recording with waveform, playback, and slow-play
-- **Word Stretch** – Block reset animated letter stretching
+- **Record Me! + Voice Journal** – Recordings are kept, grouped by prompt, and shown as
+  **Then vs Now** so progress is audible
+- **Word Stretch** – Letters pull apart in time with sustained voicing
 - **Mini Games** – Gentle Onset, Stretchy Speech, Pause Challenge
 - **Daily Challenges** – Real-world brave tries
 - **Rewards & Avatar** – Coins, unlockable avatars, customization
@@ -16,6 +22,37 @@ A mobile-first Progressive Web App for children (ages 6-10) to build speech flue
 - **Parent Dashboard** – Weekly chart, trends, coaching tips
 - **Offline support** – Full service worker caching
 - **IndexedDB** – All data stored locally
+
+## How the voice detection works
+
+`js/modules/voice.js` analyses the raw amplitude envelope from `AnalyserNode`. There is
+**no speech recognition, deliberately** – ASR scores word accuracy and treats
+repetitions, prolongations and blocks as garbage input, which is the worst possible
+feedback loop for a child who stammers. Amplitude analysis instead measures *how* a
+sound was made:
+
+| Measure | Used by | Meaning |
+|---|---|---|
+| Sustained voicing (ms) | Word Stretch, Stretchy Speech | how long a sound was held |
+| Onset rise time (10%→90%) | Gentle Start | how abruptly the voice began |
+
+`classifyOnset()` reports `gentle` / `okay` / `hard`. A hard glottal attack reaches full
+volume in ~15ms; an easy onset ramps in over 200ms+. It's loudness-invariant, so a quiet
+child isn't penalised. These are heuristics tuned by ear, not clinical measurements –
+the thresholds are constants at the top of `voice.js`, tune them to your child.
+
+Every activity still works with the microphone denied or missing; it just stops scoring.
+
+## Data & future sync
+
+Practice history is stored as `practiceDays: ['2026-08-13', …]` – a **set of dates**,
+not a counter. That's the one shape that merges cleanly when two devices sync (union the
+sets and the answer is right), so adding accounts later won't require a migration.
+`streak` is always derived via `computeStreak()`, never stored as truth.
+
+Missing a day **never** resets anything. Rest days are earned by practising and bridge
+gaps automatically, and the Confidence Road is drawn from total days practised, which
+only ever increases.
 
 ## Project Structure
 
@@ -33,13 +70,17 @@ fluency-app/
     ├── main.js
     ├── modules/
     │   ├── db.js        # IndexedDB wrapper
-    │   ├── state.js     # App state
-    │   ├── router.js    # Hash router
+    │   ├── state.js     # App state, practice history, streak
+    │   ├── router.js    # Route table (calls page.__cleanup on leave)
     │   ├── audio.js     # Web Audio API
+    │   ├── voice.js     # Mic input: voicing duration + onset analysis
+    │   ├── speech.js    # Spoken models via speechSynthesis
     │   ├── toast.js     # Notifications
     │   └── avatar.js    # Avatar data
     ├── components/
     │   ├── nav.js
+    │   ├── micPanel.js     # Shared "I can hear you" meter
+    │   ├── voiceJournal.js # Then vs Now recordings
     │   ├── home.js
     │   ├── emotionCheck.js
     │   ├── streakRoad.js
@@ -94,11 +135,17 @@ Right-click `index.html` → Open with Live Server
 
 ## Psychological Principles
 
-- ✅ Reinforce **effort, not fluency**
-- ✅ No failure states or red error messages  
+- ✅ Reinforce **effort, not fluency** – rewards require a real attempt at the target,
+  never a button press. Nothing scores a stammer as a failure, because nothing measures
+  word accuracy at all.
+- ✅ No failure states. An unheard attempt says "I couldn't hear that" and offers another
+  turn; a hard onset gets a coaching cue, not a penalty.
+- ✅ **Nothing the child earns is ever taken away.** A missed day cannot reduce the
+  Confidence Road, the milestones, or the days-practised count.
 - ✅ Sessions capped at 3-5 minutes
 - ✅ Identity-building language ("Your calm voice power")
-- ✅ Encouragement-first toasts and feedback
+- ✅ Specific feedback over generic praise ("you held that for 2.1 seconds" beats
+  "Amazing!" – children detect non-contingent praise quickly and discount it)
 - ✅ Positive emotion tracking (never comparative)
 
 ## Customization

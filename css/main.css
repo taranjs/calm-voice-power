@@ -260,12 +260,60 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--ink-soft); }
   font-family: var(--font-display); font-size: clamp(2rem, 9vw, 3rem);
   text-align: center; color: var(--sky); padding: 20px;
   display: flex; justify-content: center; gap: 4px; flex-wrap: wrap;
+  /* `gap` is set per frame from the child's sustained voice, so keep the
+     easing short enough to feel like a direct response rather than a replay. */
+  transition: gap 0.12s linear;
 }
 .stretch-letter {
   display: inline-block;
-  transition: letter-spacing 1.5s cubic-bezier(0.4,0,0.2,1), transform 1.5s ease;
+  transition: transform 0.25s ease, color 0.25s ease;
 }
-.stretch-letter.stretching { letter-spacing: 16px; transform: scaleX(1.2); }
+.stretch-letter.stretching { transform: scale(1.12); color: var(--mint); }
+
+/* ── ACTION ROWS ─────────────────────────────── */
+/* Three .btn side by side overflow a phone and wrap into tall ovals. Primary
+   action gets its own full-width row; the secondaries share the one below. */
+.action-stack { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+.action-stack > .btn { width: 100%; }
+.action-row { display: flex; gap: 10px; }
+.action-row .btn {
+  flex: 1; min-height: 48px; padding: 10px 12px;
+  font-size: 0.92rem; white-space: nowrap;
+}
+
+/* ── MIC PANEL ───────────────────────────────── */
+.mic-panel { margin: 12px 0; }
+.mic-meter {
+  display: flex; gap: 3px; justify-content: center; align-items: flex-end;
+  height: 26px; margin-bottom: 8px;
+}
+.mic-seg {
+  width: 8px; height: 10px; border-radius: 3px;
+  background: var(--sky-light); opacity: 0.55;
+  transition: height var(--t-fast), background var(--t-fast), opacity var(--t-fast);
+}
+.mic-seg.lit  { height: 20px; opacity: 1; background: var(--sky); }
+.mic-seg.over { height: 26px; background: var(--mint); }
+.mic-panel.listening .mic-meter { animation: pulse 2s infinite; border-radius: var(--radius-full); }
+.mic-status {
+  text-align: center; font-size: 0.85rem; font-weight: 700;
+  color: var(--ink-faint); min-height: 22px; margin: 0;
+}
+.mic-status.good { color: var(--mint); }
+
+/* ── VOICE JOURNAL ───────────────────────────── */
+.compare-row { display: flex; align-items: center; gap: 10px; }
+.compare-side {
+  flex: 1; text-align: center; padding: 12px 8px;
+  background: var(--sky-pale); border: 2px solid var(--sky-light);
+  border-radius: var(--radius-md);
+}
+.compare-label {
+  font-family: var(--font-display); font-size: 1rem; color: var(--ink-faint);
+}
+.compare-label.now { color: var(--sky); }
+.compare-date { font-size: 0.72rem; color: var(--ink-faint); font-weight: 700; margin: 2px 0 8px; }
+.compare-arrow { font-size: 1.3rem; color: var(--ink-faint); flex-shrink: 0; }
 
 /* ── GAMES ───────────────────────────────────── */
 .game-arena {

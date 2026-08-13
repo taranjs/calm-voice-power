@@ -18,6 +18,7 @@ import { renderAvatarBuilder }     from './components/avatarBuilder.js';
 import { renderParentDashboard }   from './components/parentDashboard.js';
 import { renderPracticeHub }       from './components/practiceHub.js';
 import { renderGamesHub }          from './components/gamesHub.js';
+import { renderVoiceJournal }      from './components/voiceJournal.js';
 
 // Games
 import { renderGentleOnset }   from './games/gentleOnset.js';
@@ -69,6 +70,7 @@ async function boot() {
   route('parent',        renderParentDashboard);
   route('practice',      renderPracticeHub);
   route('games',         renderGamesHub);
+  route('journal',       renderVoiceJournal);
   route('game-gentle',   renderGentleOnset);
   route('game-stretchy', renderStretchySpeech);
   route('game-pause',    renderPauseChallenge);

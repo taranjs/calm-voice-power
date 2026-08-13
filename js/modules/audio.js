@@ -35,6 +35,41 @@ export function playClick() { playTone(600, 0.08, 'square', 0.15); }
 export function playDot()   { playTone(440, 0.1, 'sine', 0.2); }
 export function playCoin()  { playTone(880, 0.08); setTimeout(()=>playTone(1100,0.12),90); }
 
+/**
+ * A tone that fades *in* slowly instead of starting at full volume.
+ * Synthesised speech can't demonstrate a gentle onset – every TTS voice attacks
+ * the same way – but the shape of an easy onset is really just this envelope.
+ * The child hears the target as a sound before trying to make it.
+ */
+export function playGentleRamp(freq = 294, attack = 0.45, hold = 0.5, vol = 0.22) {
+  try {
+    const ctx = getAudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine'; osc.frequency.value = freq;
+    const t0 = ctx.currentTime;
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(vol, t0 + attack);
+    gain.gain.setValueAtTime(vol, t0 + attack + hold);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + attack + hold + 0.35);
+    osc.start(t0); osc.stop(t0 + attack + hold + 0.4);
+  } catch(e) {}
+}
+
+/** Frame loudness (0–1) from any analyser – used to check a take had a voice in it. */
+export function rmsFrom(analyser) {
+  if (!analyser) return 0;
+  const buf = new Uint8Array(analyser.fftSize);
+  analyser.getByteTimeDomainData(buf);
+  let sum = 0;
+  for (let i = 0; i < buf.length; i++) {
+    const v = (buf[i] - 128) / 128;
+    sum += v * v;
+  }
+  return Math.sqrt(sum / buf.length);
+}
+
 // ── Recording ──────────────────────────────────
 export async function startRecording() {
   _stream = await navigator.mediaDevices.getUserMedia({ audio: true });

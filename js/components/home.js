@@ -67,7 +67,7 @@ export function renderHome() {
     <!-- Streak Road preview -->
     <div class="section-title">Your Confidence Road 🛤️</div>
     <div class="card mb-16" id="streak-preview" style="cursor:pointer">
-      <div style="font-size:0.85rem;color:var(--ink-faint);margin-bottom:8px">Tap to see your full journey</div>
+      <div style="font-size:0.85rem;color:var(--ink-faint);margin-bottom:8px">${state.practiceDays.length} days practised · tap to see your full journey</div>
       <div id="mini-road"></div>
     </div>
 
@@ -76,9 +76,9 @@ export function renderHome() {
     <div id="challenge-preview"></div>
   `;
 
-  // Mini road
+  // Mini road – total days practised, so the stars never disappear on him
   const miniRoad = page.querySelector('#mini-road');
-  const dots = Math.min(state.streak, 10);
+  const dots = Math.min(state.practiceDays.length, 10);
   const miniHtml = Array.from({length: 10}, (_,i) =>
     `<span style="font-size:1.6rem">${i < dots ? '⭐' : '○'}</span>`
   ).join(' ');

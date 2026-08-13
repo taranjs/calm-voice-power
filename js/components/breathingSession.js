@@ -1,6 +1,6 @@
 // js/components/breathingSession.js
 import { navigate } from '../modules/router.js';
-import { addCoins, addMinutes, saveState } from '../modules/state.js';
+import { addCoins, addMinutes, saveState, recordPractice } from '../modules/state.js';
 import { playTone, playSuccess, playClick } from '../modules/audio.js';
 import { toast, praiseToast } from '../modules/toast.js';
 
@@ -123,6 +123,7 @@ export function renderBreathingSession() {
     const mins = Math.round((Date.now() - startTime) / 60000) || 1;
     await addCoins(10);
     await addMinutes(mins);
+    await recordPractice('breathing', { cycles: targetCycles });
     await saveState();
     toast('🪙 +10 coins earned!', 'reward');
     startBtn.textContent = '✨ Do it again';
