@@ -3,7 +3,7 @@
 // the animation for him and paid out coins for watching it – he could earn the
 // entire shop by tapping one button without making a sound.
 import { navigate } from '../modules/router.js';
-import { addCoins, saveState, recordPractice } from '../modules/state.js';
+import { awardRep, saveState, recordPractice, noteBest } from '../modules/state.js';
 import { playTone, playSuccess, playClick } from '../modules/audio.js';
 import { speakModel, cancelSpeech, isSpeechSupported } from '../modules/speech.js';
 import { acquireMic, releaseMic, isMicSupported, calibrateNoiseFloor, createVoiceTracker } from '../modules/voice.js';
@@ -151,9 +151,12 @@ export function renderBlockReset() {
         loggedToday = true;
         await recordPractice('word-stretch');
       }
-      await addCoins(5);
+      if (await noteBest('holdMs', held)) {
+        toast(`🏅 New best hold: ${(held / 1000).toFixed(1)}s!`, 'reward');
+      }
+      const coins = await awardRep('word-stretch');
       await saveState();
-      toast('🪙 +5 coins! So smooth!', 'reward');
+      if (coins) toast(`🪙 +${coins} coins! So smooth!`, 'reward');
     } else {
       hintText.textContent = `You stretched ${Math.round(amount * 100)}% of it – hold the sound a bit longer 🐢`;
       mic.setStatus('Nearly! Keep the sound going', '');

@@ -301,6 +301,38 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--ink-soft); }
 }
 .mic-status.good { color: var(--mint); }
 
+/* ── VOICE POWERS ────────────────────────────── */
+.power-card { padding: 16px 18px; }
+.power-head { display: flex; align-items: center; gap: 12px; }
+.power-icon { font-size: 2.2rem; line-height: 1; flex-shrink: 0; }
+.power-name { font-family: var(--font-display); font-size: 1.05rem; color: var(--ink); }
+.power-blurb { font-size: 0.8rem; color: var(--ink-faint); font-weight: 700; margin-top: 2px; }
+.power-pips { display: flex; gap: 4px; flex-shrink: 0; }
+.power-pip {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--sky-light); transition: background var(--t-med);
+}
+.power-pip.on { background: var(--sun); box-shadow: 0 1px 4px rgba(255,209,102,0.6); }
+.power-note { font-size: 0.8rem; color: var(--ink-soft); font-weight: 700; margin-top: 8px; }
+.mb-12 { margin-bottom: 12px; }
+
+/* ── PACING / PAUSE ──────────────────────────── */
+.pacing-dot.missed { background: var(--sky-pale); color: var(--ink-faint); opacity: 0.6; }
+.tempo-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tempo-row .btn { min-height: 46px; padding: 10px 14px; font-size: 0.9rem; }
+.tempo-read { text-align: center; line-height: 1.1; }
+.tempo-read span:first-child { font-family: var(--font-display); font-size: 1.5rem; color: var(--sky); }
+.tempo-unit { display: block; font-size: 0.68rem; font-weight: 700; color: var(--ink-faint); }
+.level-btn.level-on { background: var(--sky); color: var(--white); }
+.pause-hold {
+  height: 14px; border-radius: 7px; background: var(--lavender-light);
+  overflow: hidden; margin: 10px auto; max-width: 240px;
+}
+.pause-hold-fill {
+  height: 100%; border-radius: 7px; background: var(--lavender);
+  transition: width 0.1s linear;
+}
+
 /* ── VOICE SETUP ─────────────────────────────── */
 .setup-dots { display: flex; justify-content: center; gap: 10px; margin-bottom: 16px; }
 .setup-dot {

@@ -2,6 +2,10 @@
 import { state, hasVoiceProfile } from '../modules/state.js';
 import { navigate } from '../modules/router.js';
 import { playClick } from '../modules/audio.js';
+import { dbGetAll } from '../modules/db.js';
+
+// How long before we invite him back to re-record a journal prompt.
+const STALE_DAYS = 7;
 
 export function renderHome() {
   const page = document.createElement('div');
@@ -76,6 +80,20 @@ export function renderHome() {
       </button>
     </div>
 
+    <!-- Journal ritual: filled in asynchronously if a prompt has gone stale -->
+    <div id="journal-nudge"></div>
+
+    <!-- Voice powers -->
+    <div class="card card-lavender mb-16" id="powers-cta" style="cursor:pointer">
+      <div class="flex-between">
+        <div>
+          <div style="font-family:var(--font-display);font-size:1.1rem">My Voice Powers ⚡</div>
+          <p style="font-size:0.85rem;margin-top:4px">See how much stronger your voice is getting</p>
+        </div>
+        <span style="font-size:2rem">🪶</span>
+      </div>
+    </div>
+
     <!-- Streak Road preview -->
     <div class="section-title">Your Confidence Road 🛤️</div>
     <div class="card mb-16" id="streak-preview" style="cursor:pointer">
@@ -129,6 +147,59 @@ export function renderHome() {
     playClick();
     navigate('streak');
   });
+  page.querySelector('#powers-cta').addEventListener('click', () => {
+    playClick();
+    navigate('powers');
+  });
+
+  // Then vs Now only pays off if he actually records the same thing again, and
+  // nothing ever asked him to. Once a prompt has gone stale, invite him back to
+  // it – the reward is hearing his own progress, which never wears off the way
+  // coins do.
+  buildJournalNudge(page.querySelector('#journal-nudge'));
 
   return page;
+}
+
+async function buildJournalNudge(slot) {
+  if (!slot) return;
+  try {
+    const all = (await dbGetAll('recordings')).filter(r => r && r.blob && r.promptId);
+    if (!all.length) return;
+
+    // Oldest last-recorded prompt wins – that's the biggest audible change.
+    const latest = new Map();
+    all.forEach(r => {
+      const t = new Date(r.date).getTime();
+      if (!latest.has(r.promptId) || t > latest.get(r.promptId).t) {
+        latest.set(r.promptId, { t, text: r.promptText, id: r.promptId });
+      }
+    });
+    const stale = [...latest.values()]
+      .map(p => ({ ...p, days: Math.floor((Date.now() - p.t) / 86400000) }))
+      .filter(p => p.days >= STALE_DAYS)
+      .sort((a, b) => b.days - a.days)[0];
+    if (!stale) return;
+
+    slot.innerHTML = `
+      <div class="card card-mint mb-16" id="journal-cta" style="cursor:pointer">
+        <div class="flex-between">
+          <div>
+            <div style="font-family:var(--font-display);font-size:1.05rem">Say it again? 🎧</div>
+            <p style="font-size:0.85rem;margin-top:4px">
+              It's been ${stale.days} days since you recorded
+              “${stale.text || 'this one'}”. Record it again and hear the difference!
+            </p>
+          </div>
+          <span style="font-size:2rem">🎙️</span>
+        </div>
+      </div>
+    `;
+    slot.querySelector('#journal-cta').addEventListener('click', () => {
+      playClick();
+      navigate('recorder', { promptId: stale.id });
+    });
+  } catch (e) {
+    /* the nudge is a bonus – never let it break the home screen */
+  }
 }

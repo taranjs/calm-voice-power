@@ -2,7 +2,7 @@
 // The bar fills from *sustained voice*, not from how long a button is held.
 // Silence moves nothing, so there is no way to score without speaking.
 import { navigate } from '../modules/router.js';
-import { addCoins, saveState, recordPractice } from '../modules/state.js';
+import { awardRep, saveState, recordPractice, noteBest } from '../modules/state.js';
 import { playSuccess, playClick } from '../modules/audio.js';
 import { speakModel, cancelSpeech, isSpeechSupported } from '../modules/speech.js';
 import { acquireMic, releaseMic, isMicSupported, calibrateNoiseFloor, createVoiceTracker } from '../modules/voice.js';
@@ -128,23 +128,24 @@ export function renderStretchySpeech() {
       scoreEl.textContent = `${score} ⭐`;
       msg.textContent = `🌟 You held that for ${(held / 1000).toFixed(1)} seconds!`;
       mic.setStatus('Beautiful long sound 🌈', 'good');
-      awardIfDue();
+      awardIfDue(held);
     } else {
       msg.textContent = `Nice try! You held it ${(held / 1000).toFixed(1)}s – aim for ${(target / 1000).toFixed(1)}s 🐢`;
       mic.setStatus('Try letting the sound float a little longer');
     }
   }
 
-  async function awardIfDue() {
+  async function awardIfDue(held) {
     if (!loggedToday) {
       loggedToday = true;
       await recordPractice('stretchy-speech');
     }
-    if (score % 3 === 0) {
-      await addCoins(10);
-      await saveState();
-      toast('🪙 +10 coins!', 'reward');
+    if (await noteBest('holdMs', held)) {
+      toast(`🏅 New best hold: ${(held / 1000).toFixed(1)}s!`, 'reward');
     }
+    const coins = await awardRep('stretchy-speech');
+    await saveState();
+    if (coins) toast(`🪙 +${coins} coins!`, 'reward');
   }
 
   async function startTake() {

@@ -17,6 +17,13 @@ const REST_MAX = 2;
 // that it tracks him as he improves rather than averaging in last month's habit.
 const ONSET_HISTORY = 20;
 
+// Coins taper within a session. Heavy per-rep rewards for something a child was
+// already intrinsically excited about crowd the excitement out – and once the
+// coins saturate, motivation lands *below* where it started. Effort still pays;
+// grinding the same activity twenty times does not.
+const REP_FULL_PRICE = 3;   // first few reps of an activity each day pay in full
+const DAILY_BONUS = 15;     // showing up at all is the behaviour worth paying for
+
 // Measured loudness of this particular child on this particular device, so the
 // detection threshold stops being a guess about a generic six-year-old. Only
 // numbers – no audio is stored, which also makes it trivial to sync later.
@@ -43,7 +50,41 @@ export const state = {
   unlockedAvatars: ['🐱'],
   totalMinutes: 0,
   voiceProfile: { ...EMPTY_VOICE_PROFILE },
+  bests: { holdMs: 0, pauseMs: 0, pacedWords: 0 },
+  repsToday: { date: null, counts: {} },
 };
+
+// ── Rewards ──────────────────────────────────────
+/**
+ * Pay for one completed repetition, tapering after the first few today.
+ * Returns the coins awarded so the caller can show the right number.
+ */
+export async function awardRep(activity, base = 5) {
+  const today = dayKey();
+  if (state.repsToday.date !== today) state.repsToday = { date: today, counts: {} };
+
+  const n = (state.repsToday.counts[activity] || 0) + 1;
+  state.repsToday.counts[activity] = n;
+  await setSetting('repsToday', state.repsToday);
+
+  const amount = n <= REP_FULL_PRICE ? base : Math.max(1, base - (n - REP_FULL_PRICE));
+  await addCoins(amount);
+  return amount;
+}
+
+/**
+ * Record a personal best. Returns true when it actually is one, so activities
+ * can celebrate it – beating your own record is the competence signal that
+ * generic praise isn't.
+ */
+export async function noteBest(key, value) {
+  if (!Number.isFinite(value) || value <= 0) return false;
+  if (value <= (state.bests?.[key] || 0)) return false;
+  state.bests = { ...state.bests, [key]: Math.round(value) };
+  await setSetting('bests', state.bests);
+  emit('newBest', { key, value: state.bests[key] });
+  return true;
+}
 
 // ── Voice profile ────────────────────────────────
 export function hasVoiceProfile(p = state.voiceProfile) {
@@ -143,6 +184,9 @@ export async function recordPractice(activity = 'practice', meta = {}) {
   if (isNewDay) {
     state.practiceDays = [...state.practiceDays, key].sort();
     await setSetting('practiceDays', state.practiceDays);
+    // The one thing worth paying well for is coming back at all.
+    await addCoins(DAILY_BONUS);
+    emit('dailyBonus', DAILY_BONUS);
   }
 
   state.streak = computeStreak();
@@ -168,6 +212,8 @@ export async function loadState() {
     ...EMPTY_VOICE_PROFILE,
     ...(await getSetting('voiceProfile', null) || {}),
   };
+  state.bests     = { holdMs: 0, pauseMs: 0, pacedWords: 0, ...(await getSetting('bests', null) || {}) };
+  state.repsToday = await getSetting('repsToday', { date: null, counts: {} });
 
   state.practiceDays = await migratePracticeDays();
   state.bestStreak   = await getSetting('bestStreak', 0);

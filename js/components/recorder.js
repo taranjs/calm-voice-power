@@ -8,7 +8,7 @@ import {
   startRecording, stopRecording, drawWaveform, createAudioFromBlob,
   rmsFrom, playSuccess, playClick,
 } from '../modules/audio.js';
-import { addCoins, addMinutes, saveState, recordPractice } from '../modules/state.js';
+import { awardRep, addMinutes, saveState, recordPractice } from '../modules/state.js';
 import { dbPut } from '../modules/db.js';
 import { toast, praiseToast } from '../modules/toast.js';
 
@@ -25,12 +25,14 @@ export const JOURNAL_PROMPTS = [
 const MIN_KEEPABLE_MS = 1500;
 const VOICE_PEAK_MIN  = 0.035;
 
-export function renderRecorder() {
+export function renderRecorder({ promptId } = {}) {
   const page = document.createElement('div');
   page.className = 'page';
 
   let blob = null, analyser = null, timerInt = null, peakRaf = null;
-  let secs = 0, peak = 0, promptIdx = 0, saved = false;
+  let secs = 0, peak = 0, saved = false;
+  // Arriving from the "say it again" nudge preselects the prompt being compared.
+  let promptIdx = Math.max(0, JOURNAL_PROMPTS.findIndex(p => p.id === promptId));
 
   page.innerHTML = `
     <div class="page-header flex-between">
@@ -41,8 +43,8 @@ export function renderRecorder() {
 
     <div class="breath-chips mb-16" id="prompt-chips" role="radiogroup" aria-label="What to say">
       ${JOURNAL_PROMPTS.map((p, i) => `
-        <button class="breath-chip ${i === 0 ? 'active' : ''}" data-prompt="${p.id}"
-          role="radio" aria-checked="${i === 0 ? 'true' : 'false'}" type="button">${p.icon} ${p.text}</button>
+        <button class="breath-chip ${i === promptIdx ? 'active' : ''}" data-prompt="${p.id}"
+          role="radio" aria-checked="${i === promptIdx ? 'true' : 'false'}" type="button">${p.icon} ${p.text}</button>
       `).join('')}
     </div>
 
@@ -164,10 +166,10 @@ export function renderRecorder() {
       playSuccess();
       praiseToast();
       await recordPractice('recording', { promptId: prompt.id, durationMs });
-      await addCoins(8);
+      const coins = await awardRep('recording', 6);
       await addMinutes(Math.max(1, Math.round(secs / 60)));
       await saveState();
-      toast('🪙 +8 coins! Great recording!', 'reward');
+      if (coins) toast(`🪙 +${coins} coins! Great recording!`, 'reward');
     } else {
       // Not a failure – just nothing worth keeping. No coins, no telling-off.
       saveNote.textContent = durationMs < MIN_KEEPABLE_MS

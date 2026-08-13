@@ -1,6 +1,6 @@
 // js/components/dailyChallenge.js
 import { state, saveState } from '../modules/state.js';
-import { addCoins } from '../modules/state.js';
+import { awardRep, recordPractice } from '../modules/state.js';
 import { navigate } from '../modules/router.js';
 import { playSuccess, playClick } from '../modules/audio.js';
 import { toast } from '../modules/toast.js';
@@ -113,10 +113,11 @@ export function renderDailyChallenge() {
         el.addEventListener('click', async () => {
           playClick();
           state.todayChallenges[i].done = true;
-          await addCoins(15);
+          await recordPractice('challenge');
+          const coins = await awardRep('challenge', 10);
           await saveState();
           playSuccess();
-          toast(`🌟 Amazing! +15 coins!`, 'reward');
+          toast(`🌟 Amazing! +${coins} coins!`, 'reward');
           render();
           if (state.todayChallenges.every(c => c.done)) {
             list.style.display = 'none';

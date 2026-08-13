@@ -4,7 +4,7 @@
 // amplitude alone, which means the child finally gets feedback on the actual
 // motor target instead of a button that says "Amazing!" whatever happened.
 import { navigate } from '../modules/router.js';
-import { state, addCoins, saveState, recordPractice, addOnsetSample } from '../modules/state.js';
+import { state, awardRep, saveState, recordPractice, addOnsetSample } from '../modules/state.js';
 import { playSuccess, playClick, playGentleRamp } from '../modules/audio.js';
 import { speakModel, cancelSpeech, isSpeechSupported } from '../modules/speech.js';
 import {
@@ -172,11 +172,9 @@ export function renderGentleOnset() {
       loggedToday = true;
       await recordPractice('gentle-onset');
     }
-    if (score % 3 === 0) {
-      await addCoins(10);
-      await saveState();
-      toast('🪙 +10 coins!', 'reward');
-    }
+    const coins = await awardRep('gentle-onset');
+    await saveState();
+    if (coins) toast(`🪙 +${coins} coins!`, 'reward');
   }
 
   async function startTake() {
