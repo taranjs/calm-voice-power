@@ -1,7 +1,8 @@
 // js/components/parentDashboard.js
-import { state } from '../modules/state.js';
+import { state, hasVoiceProfile } from '../modules/state.js';
 import { navigate } from '../modules/router.js';
 import { playClick } from '../modules/audio.js';
+import { onsetTargetFrom, ONSET_GOAL_MS } from '../modules/voice.js';
 
 const TIPS = [
   'Celebrate every attempt, not just perfect speech. Say "I love how you kept trying!"',
@@ -48,6 +49,20 @@ export function renderParentDashboard() {
   const avgAfterRound = Math.round(avgAfter) || null;
 
   const tip = TIPS[Math.floor(Math.random() * TIPS.length)];
+
+  // Gentle-onset trend. Rise time is how long the voice takes to build up at the
+  // start of a word: a hard glottal attack is ~15ms, an easy onset 110ms+. This
+  // is the one number here that tracks the actual speech target rather than
+  // engagement, so it's worth showing you honestly – including when it's flat.
+  const onsets = state.voiceProfile?.onsetSamples || [];
+  const median = arr => {
+    const s = [...arr].sort((a, b) => a - b);
+    return s.length ? Math.round(s[Math.floor(s.length / 2)]) : null;
+  };
+  const half = Math.floor(onsets.length / 2);
+  const earlier = onsets.length >= 6 ? median(onsets.slice(0, half)) : null;
+  const recent  = onsets.length >= 3 ? median(onsets.slice(-half || -3)) : null;
+  const goalMs  = onsetTargetFrom(onsets);
 
   page.innerHTML = `
     <div class="page-header flex-between">
@@ -97,6 +112,44 @@ export function renderParentDashboard() {
       ` : '<p style="color:var(--ink-faint);font-size:0.85rem">Complete sessions to see emotion trends.</p>'}
     </div>
 
+    <!-- Gentle onset trend -->
+    <div class="card mb-16">
+      <h3 style="margin-bottom:4px">Gentle Starts</h3>
+      <p style="font-size:0.8rem;color:var(--ink-faint);margin-bottom:12px">
+        How long the voice takes to build up at the start of a word. Longer is gentler –
+        a hard attack is around 15ms, an easy onset ${ONSET_GOAL_MS}ms or more.
+      </p>
+      ${recent === null ? `
+        <p style="color:var(--ink-faint);font-size:0.85rem">
+          ${hasVoiceProfile()
+            ? 'Play Gentle Start a few times to see this.'
+            : 'Run “Teach Me Your Voice” in Practice first, then play Gentle Start.'}
+        </p>
+      ` : `
+        <div class="flex-between mb-8">
+          <span style="font-size:0.85rem;color:var(--ink-faint)">Recent average:</span>
+          <span style="font-weight:800">${recent}ms</span>
+        </div>
+        ${earlier !== null ? `
+          <div class="flex-between mb-8">
+            <span style="font-size:0.85rem;color:var(--ink-faint)">When he started:</span>
+            <span style="font-weight:800">${earlier}ms</span>
+          </div>` : ''}
+        <div class="flex-between">
+          <span style="font-size:0.85rem;color:var(--ink-faint)">Current goal:</span>
+          <span style="font-weight:800">${goalMs}ms${goalMs >= ONSET_GOAL_MS ? ' 🏅' : ''}</span>
+        </div>
+        ${earlier !== null && recent > earlier
+          ? `<p style="color:var(--mint);font-weight:700;margin-top:10px;font-size:0.9rem">✨ Starts are ${Math.round(((recent - earlier) / earlier) * 100)}% gentler than when he began.</p>`
+          : earlier !== null
+            ? '<p style="color:var(--ink-faint);margin-top:10px;font-size:0.85rem">Holding steady for now – this one moves slowly, and that is normal.</p>'
+            : ''}
+      `}
+      <div class="action-row mt-16">
+        <button class="btn btn-ghost" id="recalibrate-btn" style="font-size:0.85rem">🎤 Redo voice setup</button>
+      </div>
+    </div>
+
     <!-- Coaching tip -->
     <div class="card card-sun mb-16">
       <div style="font-weight:800;margin-bottom:8px">💡 Coaching Tip for Today</div>
@@ -144,6 +197,7 @@ export function renderParentDashboard() {
 
   page.querySelector('#exit-btn').addEventListener('click', () => { playClick(); navigate('home'); });
   page.querySelector('#avatar-btn').addEventListener('click', () => { playClick(); navigate('avatar'); });
+  page.querySelector('#recalibrate-btn').addEventListener('click', () => { playClick(); navigate('voice-setup'); });
 
   return page;
 }

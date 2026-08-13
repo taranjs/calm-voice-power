@@ -23,6 +23,7 @@ const HARD_RISE_MS        = 55;     // faster than this is a hard glottal attack
 let _stream = null, _source = null, _analyser = null, _buf = null;
 let _users = 0;                     // refcount – screens can share one mic grant
 let _noiseFloor = NOISE_FLOOR_DEFAULT;
+let _profile = null;                // this child's measured levels, once known
 
 export function isMicSupported() {
   return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
@@ -92,9 +93,65 @@ export function calibrateNoiseFloor(ms = 600) {
   });
 }
 
-export function voiceThreshold() {
-  return Math.max(MIN_THRESHOLD, _noiseFloor * VOICE_MARGIN);
+/**
+ * Hand in the child's measured voice profile (see components/voiceSetup.js).
+ * Without one everything still works – it just falls back to a generic guess.
+ */
+export function setVoiceProfile(profile) {
+  _profile = profile && profile.quiet > 0 ? profile : null;
 }
+
+export function getVoiceProfile() { return _profile; }
+
+/**
+ * Where the line between "room" and "him" sits.
+ *
+ * With a profile this is a two-class split: we know what silence measures and
+ * what his quietest voice measures, so put the threshold between them. The
+ * geometric mean lands sensibly between the two whatever the overall scale,
+ * which matters because phone and tablet microphones differ by a lot.
+ *
+ * Without a profile it's the old guess: a generic child, a generic device.
+ */
+export function voiceThreshold() {
+  if (!_profile?.quiet) return Math.max(MIN_THRESHOLD, _noiseFloor * VOICE_MARGIN);
+
+  const between = Math.sqrt(_noiseFloor * _profile.quiet);
+  const ceiling = _profile.quiet * 0.8;   // must stay reachable by his quiet voice
+  const floor   = _noiseFloor * 1.6;      // and ideally stay above the room
+
+  // If the room is loud enough that those conflict, staying reachable wins.
+  // Being falsely triggered by background noise is a nuisance; being deaf to
+  // the child is the failure that makes him give up.
+  return Math.min(ceiling, Math.max(between, floor));
+}
+
+/** True when the room is loud enough to be competing with his quiet voice. */
+export function isRoomTooNoisy() {
+  if (!_profile?.quiet) return false;
+  return _noiseFloor * 1.6 > _profile.quiet * 0.8;
+}
+
+/**
+ * The gentleness goal to hold him to right now.
+ *
+ * Deliberately *not* just "better than his own average": if his habitual onset
+ * is hard – which is likely, that's why he's practising – a purely relative
+ * target would reward the exact habit he's trying to change. So his own recent
+ * median only sets the starting difficulty, and the goal ratchets toward the
+ * real target as he improves. Successive approximation, the way shaping works
+ * in therapy: start where he actually is, move the line as he earns it.
+ */
+export function onsetTargetFrom(samples = [], minSamples = 3) {
+  if (!Array.isArray(samples) || samples.length < minSamples) return GENTLE_RISE_MS;
+  const sorted = [...samples].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+  return Math.round(
+    Math.min(GENTLE_RISE_MS, Math.max(HARD_RISE_MS + 15, median + 30))
+  );
+}
+
+export const ONSET_GOAL_MS = GENTLE_RISE_MS;
 
 /**
  * Classify the shape of a voice onset from its amplitude envelope.
@@ -106,8 +163,9 @@ export function voiceThreshold() {
  * instruction like "start softly, like a feather" never can.
  *
  * @param {{t:number, level:number}[]} envelope samples from the onset window
+ * @param {{gentleMs?:number, hardMs?:number}} goal personal target, see onsetTargetFrom()
  */
-export function classifyOnset(envelope) {
+export function classifyOnset(envelope, { gentleMs = GENTLE_RISE_MS, hardMs } = {}) {
   if (!envelope || envelope.length < 4) return null;
   const max = envelope.reduce((m, e) => Math.max(m, e.level), 0);
   if (max <= 0) return null;
@@ -117,10 +175,16 @@ export function classifyOnset(envelope) {
   const tHi = envelope.find(e => e.level >= hi)?.t ?? envelope[envelope.length - 1].t;
   const riseMs = Math.max(0, tHi - tLo);
 
+  // Keep a band between "hard" and the goal, even when the goal has been eased
+  // down for a child who is starting out – otherwise there's no middle ground
+  // to give encouragement in.
+  const hard = hardMs ?? Math.min(HARD_RISE_MS, gentleMs * 0.5);
+
   return {
     riseMs: Math.round(riseMs),
     peak: max,
-    quality: riseMs >= GENTLE_RISE_MS ? 'gentle' : riseMs <= HARD_RISE_MS ? 'hard' : 'okay',
+    goalMs: gentleMs,
+    quality: riseMs >= gentleMs ? 'gentle' : riseMs <= hard ? 'hard' : 'okay',
   };
 }
 
@@ -202,7 +266,7 @@ export function createVoiceTracker({
     get everVoiced() { return everVoiced; },
 
     /** How gently this utterance started. See classifyOnset(). */
-    analyzeOnset() { return classifyOnset(envelope); },
+    analyzeOnset(goal) { return classifyOnset(envelope, goal); },
 
     /** Raw onset samples, exposed for tuning the thresholds against real takes. */
     get onsetEnvelope() { return envelope.slice(); },

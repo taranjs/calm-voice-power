@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calm-voice-v5';
+const CACHE_NAME = 'calm-voice-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -18,6 +18,7 @@ const ASSETS = [
   './js/components/nav.js',
   './js/components/micPanel.js',
   './js/components/voiceJournal.js',
+  './js/components/voiceSetup.js',
   './js/components/emotionCheck.js',
   './js/components/streakRoad.js',
   './js/components/breathingSession.js',

@@ -1,5 +1,5 @@
 // js/components/home.js
-import { state } from '../modules/state.js';
+import { state, hasVoiceProfile } from '../modules/state.js';
 import { navigate } from '../modules/router.js';
 import { playClick } from '../modules/audio.js';
 
@@ -27,6 +27,18 @@ export function renderHome() {
       <span class="coin-display">🪙 <span id="home-coins">${state.coins}</span> coins</span>
       <span class="pill pill-sky">🔥 ${state.streak} day streak</span>
     </div>
+
+    ${hasVoiceProfile() ? '' : `
+    <!-- One-off voice calibration, so detection is tuned to this child -->
+    <div class="card card-sun mb-16" id="voice-setup-cta" style="cursor:pointer">
+      <div class="flex-between">
+        <div>
+          <div style="font-family:var(--font-display);font-size:1.1rem">Teach me your voice 🎤</div>
+          <p style="font-size:0.85rem;margin-top:4px">Three silly voices so I never miss you when you talk</p>
+        </div>
+        <span style="font-size:2rem">🦁</span>
+      </div>
+    </div>`}
 
     <!-- Emotion check-in CTA -->
     <div class="card card-soft mb-16" id="emotion-cta" style="cursor:pointer">
@@ -99,6 +111,10 @@ export function renderHome() {
   });
 
   // Events
+  page.querySelector('#voice-setup-cta')?.addEventListener('click', () => {
+    playClick();
+    navigate('voice-setup');
+  });
   page.querySelector('#emotion-cta').addEventListener('click', () => {
     playClick();
     navigate('emotion-check');

@@ -301,6 +301,26 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--ink-soft); }
 }
 .mic-status.good { color: var(--mint); }
 
+/* ── VOICE SETUP ─────────────────────────────── */
+.setup-dots { display: flex; justify-content: center; gap: 10px; margin-bottom: 16px; }
+.setup-dot {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--sky-light); font-size: 1.2rem; opacity: 0.45;
+  transition: all var(--t-med);
+}
+.setup-dot.current { opacity: 1; background: var(--sky); box-shadow: 0 0 0 4px var(--sky-light); transform: scale(1.1); }
+.setup-dot.done    { opacity: 1; background: var(--mint); color: var(--white); font-weight: 800; }
+.voice-range { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.voice-range-row { display: flex; align-items: center; gap: 10px; }
+.voice-range-icon { font-size: 1.3rem; width: 28px; flex-shrink: 0; }
+.voice-range-track { flex: 1; height: 14px; border-radius: 7px; background: var(--cloud); overflow: hidden; }
+.voice-range-fill {
+  height: 100%; border-radius: 7px;
+  background: linear-gradient(90deg, var(--sky), var(--mint));
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1);
+}
+
 /* ── VOICE JOURNAL ───────────────────────────── */
 .compare-row { display: flex; align-items: center; gap: 10px; }
 .compare-side {

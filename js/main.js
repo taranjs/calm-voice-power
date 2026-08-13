@@ -1,6 +1,7 @@
 // js/main.js – App bootstrap
 import { openDB } from './modules/db.js';
-import { loadState } from './modules/state.js';
+import { loadState, state } from './modules/state.js';
+import { setVoiceProfile } from './modules/voice.js';
 import { route, navigate } from './modules/router.js';
 import { renderNav } from './components/nav.js';
 
@@ -19,6 +20,7 @@ import { renderParentDashboard }   from './components/parentDashboard.js';
 import { renderPracticeHub }       from './components/practiceHub.js';
 import { renderGamesHub }          from './components/gamesHub.js';
 import { renderVoiceJournal }      from './components/voiceJournal.js';
+import { renderVoiceSetup }        from './components/voiceSetup.js';
 
 // Games
 import { renderGentleOnset }   from './games/gentleOnset.js';
@@ -48,6 +50,9 @@ async function boot() {
   await openDB();
   await loadState();
 
+  // Detection thresholds come from this child's measured voice, when we have it.
+  setVoiceProfile(state.voiceProfile);
+
   // Build shell
   const app = document.getElementById('app');
   app.innerHTML = `
@@ -71,6 +76,7 @@ async function boot() {
   route('practice',      renderPracticeHub);
   route('games',         renderGamesHub);
   route('journal',       renderVoiceJournal);
+  route('voice-setup',   renderVoiceSetup);
   route('game-gentle',   renderGentleOnset);
   route('game-stretchy', renderStretchySpeech);
   route('game-pause',    renderPauseChallenge);

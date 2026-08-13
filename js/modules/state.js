@@ -13,6 +13,21 @@ export const SCHEMA_VERSION = 2;
 const REST_EARNED_EVERY = 5;
 const REST_MAX = 2;
 
+// How many recent onsets we keep. Enough to have a stable median, short enough
+// that it tracks him as he improves rather than averaging in last month's habit.
+const ONSET_HISTORY = 20;
+
+// Measured loudness of this particular child on this particular device, so the
+// detection threshold stops being a guess about a generic six-year-old. Only
+// numbers – no audio is stored, which also makes it trivial to sync later.
+export const EMPTY_VOICE_PROFILE = {
+  quiet: null,          // rms of his whisper
+  normal: null,         // rms of his ordinary talking voice
+  loud: null,           // rms of his roar
+  onsetSamples: [],     // recent 10%→90% rise times, ms
+  updatedAt: null,
+};
+
 export const state = {
   page: 'home',
   coins: 0,
@@ -27,7 +42,42 @@ export const state = {
   customRewards: [],
   unlockedAvatars: ['🐱'],
   totalMinutes: 0,
+  voiceProfile: { ...EMPTY_VOICE_PROFILE },
 };
+
+// ── Voice profile ────────────────────────────────
+export function hasVoiceProfile(p = state.voiceProfile) {
+  return !!(p && p.quiet > 0 && p.normal > 0);
+}
+
+export async function saveVoiceProfile(patch) {
+  state.voiceProfile = {
+    ...state.voiceProfile,
+    ...patch,
+    updatedAt: new Date().toISOString(),
+  };
+  await setSetting('voiceProfile', state.voiceProfile);
+  emit('voiceProfileChanged', state.voiceProfile);
+  return state.voiceProfile;
+}
+
+/**
+ * Feed one measured onset back in. The shaping target is derived from the
+ * median of these, so as he gets gentler the goal moves with him – he competes
+ * against his own recent self rather than a number I picked by ear.
+ */
+export async function addOnsetSample(riseMs) {
+  if (!Number.isFinite(riseMs) || riseMs < 0) return state.voiceProfile;
+  const samples = [...(state.voiceProfile.onsetSamples || []), Math.round(riseMs)]
+    .slice(-ONSET_HISTORY);
+  return saveVoiceProfile({ onsetSamples: samples });
+}
+
+export async function clearVoiceProfile() {
+  state.voiceProfile = { ...EMPTY_VOICE_PROFILE };
+  await setSetting('voiceProfile', state.voiceProfile);
+  emit('voiceProfileChanged', state.voiceProfile);
+}
 
 export function on(event, cb) {
   if (!_listeners.has(event)) _listeners.set(event, []);
@@ -114,6 +164,10 @@ export async function loadState() {
   state.sessions        = await dbGetAll('sessions');
   state.todayChallenges = await getSetting('todayChallenges', defaultChallenges());
   state.customRewards   = await getSetting('customRewards', []);
+  state.voiceProfile    = {
+    ...EMPTY_VOICE_PROFILE,
+    ...(await getSetting('voiceProfile', null) || {}),
+  };
 
   state.practiceDays = await migratePracticeDays();
   state.bestStreak   = await getSetting('bestStreak', 0);

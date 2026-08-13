@@ -10,6 +10,7 @@ const TOOLS = [
   { route: 'block-reset', icon: '✨', label: 'Word Stretch',  sub: 'Gently unstick words',     color: 'var(--lavender)', bg: 'var(--lavender-light)' },
   { route: 'challenges',  icon: '🌍', label: 'Real Challenges', sub: 'Brave everyday tries',   color: 'var(--coral)',    bg: '#FFE8E4' },
   { route: 'journal',     icon: '🎧', label: 'Voice Journal',   sub: 'Hear how far you\'ve come', color: 'var(--sun-warm)', bg: '#FFF3CC' },
+  { route: 'voice-setup', icon: '🎤', label: 'Teach Me Your Voice', sub: 'Tune the app to how you sound', color: 'var(--sky)', bg: 'var(--sky-light)' },
 ];
 
 export function renderPracticeHub() {

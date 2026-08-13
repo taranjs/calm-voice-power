@@ -38,10 +38,38 @@ sound was made:
 
 `classifyOnset()` reports `gentle` / `okay` / `hard`. A hard glottal attack reaches full
 volume in ~15ms; an easy onset ramps in over 200ms+. It's loudness-invariant, so a quiet
-child isn't penalised. These are heuristics tuned by ear, not clinical measurements –
-the thresholds are constants at the top of `voice.js`, tune them to your child.
+child isn't penalised.
 
 Every activity still works with the microphone denied or missing; it just stops scoring.
+
+### Calibration – "Teach me your voice"
+
+`components/voiceSetup.js` measures the child himself rather than assuming a generic
+one: his whisper 🐭, his talking voice 🙂 and his roar 🦁. The detection threshold is
+then a **two-class split** between the measured room noise and his measured quiet voice
+(their geometric mean, clamped to stay reachable). A soft speaker who used to fall below
+the fixed threshold now gets one that suits him, and it adapts to whatever microphone
+the device has.
+
+Only numbers are stored – no audio – so the profile is a few floats that will sync
+trivially alongside `practiceDays`.
+
+The room floor is re-measured every session, because that changes constantly. The voice
+profile persists until redone (Parent Dashboard → *Redo voice setup*).
+
+### Shaping the gentle-onset goal
+
+`onsetTargetFrom(samples)` sets the goal from his own recent median **plus 30ms**,
+ratcheting up as he improves and capped at the real target of 110ms.
+
+This is deliberately not a purely relative target. If "gentle" just meant *better than
+his own average*, a child whose habit is a hard attack would be rewarded for the exact
+habit he's practising to change. His baseline only sets the starting difficulty; the
+line then moves as he earns it — successive approximation, the way shaping works in
+therapy. There's a test for exactly this in the suite.
+
+The Parent Dashboard charts the trend, which is the only number in the app that tracks
+the speech target rather than engagement.
 
 ## Data & future sync
 
@@ -80,6 +108,7 @@ fluency-app/
     ├── components/
     │   ├── nav.js
     │   ├── micPanel.js     # Shared "I can hear you" meter
+    │   ├── voiceSetup.js   # Voice calibration game
     │   ├── voiceJournal.js # Then vs Now recordings
     │   ├── home.js
     │   ├── emotionCheck.js

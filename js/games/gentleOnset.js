@@ -4,10 +4,13 @@
 // amplitude alone, which means the child finally gets feedback on the actual
 // motor target instead of a button that says "Amazing!" whatever happened.
 import { navigate } from '../modules/router.js';
-import { addCoins, saveState, recordPractice } from '../modules/state.js';
+import { state, addCoins, saveState, recordPractice, addOnsetSample } from '../modules/state.js';
 import { playSuccess, playClick, playGentleRamp } from '../modules/audio.js';
 import { speakModel, cancelSpeech, isSpeechSupported } from '../modules/speech.js';
-import { acquireMic, releaseMic, isMicSupported, calibrateNoiseFloor, createVoiceTracker } from '../modules/voice.js';
+import {
+  acquireMic, releaseMic, isMicSupported, calibrateNoiseFloor, createVoiceTracker,
+  onsetTargetFrom, ONSET_GOAL_MS,
+} from '../modules/voice.js';
 import { createMicPanel } from '../components/micPanel.js';
 import { toast, praiseToast } from '../modules/toast.js';
 
@@ -135,14 +138,21 @@ export function renderGentleOnset() {
       return;
     }
 
-    const onset = tracker.analyzeOnset();
+    // Hold him to his own current goal, which sits a little beyond where he
+    // actually is and moves as he improves – not to a number picked by ear.
+    const goalMs = onsetTargetFrom(state.voiceProfile.onsetSamples);
+    const onset = tracker.analyzeOnset({ gentleMs: goalMs });
     const quality = onset?.quality || 'okay';
     const fb = FEEDBACK[quality];
 
     tries++;
+    if (onset) await addOnsetSample(onset.riseMs);
+
     phaseIcon.textContent = fb.icon;
     phaseLabel.textContent = fb.line;
-    riseNote.textContent = onset ? `Your start took ${onset.riseMs}ms to build up.` : '';
+    riseNote.textContent = onset
+      ? `Your start took ${onset.riseMs}ms to build up · aiming for ${goalMs}ms${goalMs < ONSET_GOAL_MS ? '' : ' 🏅'}`
+      : '';
     mic.setStatus(quality === 'gentle' ? 'That was a soft one 🪶' : 'Good try – have another go', fb.tone);
 
     if (quality === 'gentle') {
