@@ -16,8 +16,7 @@ import {
   listWords, addCustomWord, saveWordModel, removeWordModel, removeWord,
   playWordModel, stopModel, wordKey, isVowelInitial, plainWord,
 } from '../modules/myWords.js';
-import { POWER_WORDS } from './blockReset.js';
-import { GENTLE_WORDS } from '../games/gentleOnset.js';
+import { dailyPowerWords, dailyGentleWords } from '../modules/content.js';
 import { toast, praiseToast } from '../modules/toast.js';
 
 const ONSET_WINDOW_MS = 450;
@@ -304,8 +303,8 @@ export function renderMyWords() {
       groupsEl.appendChild(empty);
     }
 
-    groupsEl.appendChild(group('Gentle start words 🌱', 'Words that begin on a vowel sound.', GENTLE_WORDS));
-    groupsEl.appendChild(group('Power words ✨', 'The stretchy words from Word Stretch.', POWER_WORDS));
+    groupsEl.appendChild(group('Today\'s gentle start words 🌱', 'Words that begin on a vowel sound.', dailyGentleWords()));
+    groupsEl.appendChild(group('Today\'s power words ✨', 'The stretchy words from Word Stretch.', dailyPowerWords()));
 
     const tally = document.createElement('div');
     tally.className = 'card card-mint text-center';

@@ -1,5 +1,6 @@
 // js/modules/state.js – Reactive app state
 import { getSetting, setSetting, dbPut, dbGetAll } from './db.js';
+import { dailyChallenges } from './content.js';
 
 const _listeners = new Map();
 
@@ -344,16 +345,7 @@ export async function logSession(data) {
 }
 
 function defaultChallenges() {
-  const pool = [
-    { id: 1, text: 'Say good morning to someone', icon: '☀️', done: false },
-    { id: 2, text: 'Ask for something you want', icon: '🙋', done: false },
-    { id: 3, text: 'Tell someone one fun fact', icon: '🌟', done: false },
-    { id: 4, text: 'Read one sentence out loud', icon: '📖', done: false },
-    { id: 5, text: 'Say your name nice and slow', icon: '🐢', done: false },
-    { id: 6, text: 'Use a stretchy word today', icon: '🌈', done: false },
-    { id: 7, text: 'Take a deep breath before talking', icon: '💨', done: false },
-  ];
-  // Pick 3 random
-  const shuffled = pool.sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, 3);
+  // Generated from templates and slot banks, seeded by the date: the same three
+  // all day, a different three tomorrow. Was a fixed pool of seven.
+  return dailyChallenges(3);
 }

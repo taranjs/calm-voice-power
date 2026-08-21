@@ -44,6 +44,7 @@ async function open(wav = 'gentle.wav') {
     ['games', 'text=Mini Games'], ['streak', 'text=Confidence Road'],
     ['journal', 'text=Voice Journal'], ['powers', 'text=My Voice Powers'],
     ['my-words', 'text=My Words'], ['voice-setup', 'text=Teach me your voice'],
+    ['talk', 'text=Talk Together'], ['buddy', 'text=My Buddy'],
     ['rewards', 'text=Rewards Shop'], ['parent', 'text=Parent Dashboard'],
     ['breathing', 'text=Calm Breath'], ['pacing', 'text=Pacing Dots'],
     ['recorder', 'text=Record Me!'], ['block-reset', 'text=Word Stretch'],
@@ -246,6 +247,101 @@ async function open(wav = 'gentle.wav') {
   t('but a vowel-initial one of his does join it',
     (await page.locator('#word-prompt').textContent()).trim().toLowerCase() === 'octopus');
   t('no console errors', errors.length === 0, errors.join(' | '));
+  await browser.close();
+}
+
+// ── Talk Together: a real person, and turns counted rather than judged ──
+{
+  console.log('\nTalk Together');
+  const { browser, page, errors } = await open();
+  await page.evaluate(() => window.__nav('talk'));
+  await page.waitForTimeout(350);
+  t('it asks him to go and find someone', await page.locator('text=Go and find someone!').isVisible());
+  await page.locator('.breath-chip', { hasText: 'Dad' }).first().click();
+  await page.click('#begin-btn');
+  await page.waitForTimeout(350);
+  t('the conversation starts on his turn', (await page.locator('#turn-badge').textContent()).includes('Your turn'));
+  const prompt = (await page.locator('#prompt').textContent()).trim();
+  console.log(`    prompt: "${prompt}"`);
+  t('a conversation prompt is shown, with slots filled', prompt.length > 10 && !prompt.includes('{'));
+
+  await page.click('#turn-btn');
+  // The handler awaits the mic before it disables anything, so wait for the
+  // listening state to begin before waiting for it to end.
+  await page.waitForFunction(() => document.querySelector('#turn-btn').disabled, { timeout: 10000 }).catch(() => {});
+  await page.waitForFunction(() => !document.querySelector('#turn-btn').disabled, { timeout: 30000 }).catch(() => {});
+  await page.waitForTimeout(400);
+  t('taking a turn hands over to the partner',
+    (await page.locator('#turn-badge').textContent()).includes('Dad'));
+  t('the turn track filled a dot', (await page.locator('.turn-dot.on').count()) >= 1);
+
+  await page.click('#finish-btn');
+  await page.waitForTimeout(400);
+  const done = await page.locator('#done-title').textContent();
+  console.log(`    ${done.trim()}`);
+  t('it counts turns, and nothing about how they sounded', /took \d+ turns? with Dad/.test(done));
+  const logged = await page.evaluate(() => import('./js/modules/state.js').then(s =>
+    s.state.sessions.filter(x => x.activity === 'talk-together').length));
+  t('the conversation counts as practice', logged === 1);
+  t('the partner is remembered for next time',
+    (await page.evaluate(() => import('./js/modules/db.js').then(d => d.getSetting('talkPartner')))) === 'Dad');
+  t('no console errors', errors.length === 0, errors.join(' | '));
+  await browser.close();
+}
+
+// ── The buddy: getting stuck is shown as ordinary and survivable ──
+{
+  console.log('\nMy Buddy');
+  const { browser, page, errors } = await open();
+  await page.evaluate(() => window.__nav('buddy'));
+  await page.waitForTimeout(350);
+  await page.fill('#buddy-name', 'Rex');
+  await page.click('#meet-btn');
+  await page.waitForTimeout(350);
+  t('a scene opens', await page.locator('#scene-view').isVisible());
+  await page.click('#next-btn');
+  await page.waitForTimeout(2200);
+  t('the buddy visibly gets stuck', await page.locator('.stuck-part').isVisible());
+  const strategies = await page.locator('.strategy-btn').count();
+  t('several ways to help are offered', strategies === 4, `${strategies} options`);
+  const labels = await page.locator('.strategy-btn').allTextContents();
+  t('one of them is bouncing on the word on purpose',
+    labels.some(l => l.toLowerCase().includes('bounce')), labels.join(' | '));
+  t('and one is simply carrying on',
+    labels.some(l => l.toLowerCase().includes('keep going')));
+
+  await page.locator('.strategy-btn', { hasText: 'keep going' }).first().click();
+  await page.waitForTimeout(500);
+  const reply = (await page.locator('#scene-msg').textContent()).trim();
+  console.log(`    buddy says: "${reply}"`);
+  t('the buddy says it anyway, stuck and all', reply.includes('said it anyway'));
+  await page.waitForTimeout(2500);
+  t('and thanks him for waiting',
+    (await page.locator('#scene-msg').textContent()).includes('waiting'));
+  const buddySaved = await page.evaluate(() => import('./js/modules/db.js').then(d => d.getSetting('buddy')));
+  t('his buddy is remembered by name', buddySaved?.name === 'Rex');
+  t('helping counts as practice',
+    (await page.evaluate(() => import('./js/modules/state.js').then(s =>
+      s.state.sessions.filter(x => x.activity === 'buddy').length))) === 1);
+  t('no console errors', errors.length === 0, errors.join(' | '));
+  await browser.close();
+}
+
+// ── Content is generated, not a fixed list ──
+{
+  console.log('\nGenerated content in the running app');
+  const { browser, page } = await open();
+  const sets = await page.evaluate(async () => {
+    const c = await import('./js/modules/content.js');
+    const day = n => { const d = new Date(); d.setDate(d.getDate() + n); return d; };
+    return [0, 1, 2].map(n => c.dailyGentleWords(10, c.todaySeed(day(n), 1)).join(','));
+  });
+  t('three consecutive days give three different word sets', new Set(sets).size === 3);
+  await page.evaluate(() => window.__nav('challenges'));
+  await page.waitForTimeout(350);
+  const texts = await page.locator('.challenge-text').allTextContents();
+  t('daily challenges render with slots filled',
+    texts.length >= 1 && texts.every(x => !x.includes('{')), texts.join(' | '));
   await browser.close();
 }
 

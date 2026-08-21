@@ -6,6 +6,7 @@ const GAMES = [
   { route: 'game-gentle',  icon: '🌱', label: 'Gentle Start', sub: 'Begin words super gently',   color: '#78D9A4', bg: '#C3F0D8' },
   { route: 'game-stretchy', icon: '🌈', label: 'Stretchy Speech', sub: 'Make words last longer', color: '#6EC6F0', bg: '#C5E9FA' },
   { route: 'game-pause',    icon: '⏸️', label: 'Pause Power', sub: 'Pause master challenge',     color: '#C3B1E1', bg: '#EDE8F7' },
+  { route: 'buddy',         icon: '🦕', label: 'My Buddy',    sub: 'Help a friend who gets stuck', color: '#FFA552', bg: '#FFF3CC' },
 ];
 
 export function renderGamesHub() {

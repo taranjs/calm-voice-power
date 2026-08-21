@@ -18,6 +18,12 @@ A mobile-first Progressive Web App for children (ages 6-10) to build speech flue
   soft-attack tone that models an easy onset, which no synthesised voice can.
 - **My Words** – He adds words of his own and records himself saying them well. His
   words join the practice pools; his recordings become the model.
+- **Talk Together** – Turn-taking conversation practice with a real person in the room.
+  Counts turns, never fluency.
+- **My Buddy** – A friend who stammers, is fine about it, and needs *his* help. The
+  acceptance and desensitisation side of the work.
+- **Generated content** – Word banks and slot templates, seeded by the date: the same
+  material all day, different tomorrow.
 - **Confidence Road** – Cumulative record of every day practised. It only ever grows.
 - **3-Min Calm Breath** – Guided breathing animation
 - **Pacing Dots** – Speech rhythm trainer
@@ -96,6 +102,52 @@ His words join Word Stretch. Only his **vowel-initial** words join Gentle Start 
 gentle-onset work targets the hard glottal attack that happens on vowels, so "Dinosaur"
 would dilute it while "Octopus" belongs there. Words are keyed by a normalised form, so
 one word can only ever have one model.
+
+## Talk Together — the missing rung
+
+The app had isolated words and canned phrases, then jumped straight to "ask your teacher
+a question". Transfer happens in the middle, in real back-and-forth conversation, and
+`components/talkTogether.js` is the only activity that lives there.
+
+**Deliberately not scored on fluency.** Conversation is where pressure does the most
+damage, so it counts turns taken and nothing else — how it sounded is none of the app's
+business here. It also works with the microphone denied: then it's simply a turn-taking
+game, which is most of the value anyway.
+
+Then vs Now pairs can be shared from the Voice Journal via the Web Share API (falling
+back to a download), because progress is worth far more when somebody else hears it.
+
+## My Buddy — the part that isn't about fluency
+
+Everything else in this app is about speaking more smoothly. On its own that carries a
+quiet message: *smooth is good, stuck is bad*. A child who absorbs only that learns to
+hide, avoid and dread getting stuck — and avoidance does far more damage across a
+childhood than the stammer itself.
+
+So `components/buddy.js` gives him a friend who stammers, is completely fine about it,
+and needs him. Getting stuck is drawn plainly — no red, no buzzer — as something
+ordinary and survivable. He picks how to help from four options that are all real
+strategies, so there is no wrong answer, and one of them is **bouncing on the word on
+purpose**: voluntary stuttering, the classic desensitisation move, framed as a game.
+
+The buddy's lines are the point:
+
+> "I got a bit stuck… and I said it anyway! Getting stuck did not stop me."
+> "Thanks for waiting for me. People who wait are the best."
+
+That second one is quietly teaching him what to ask of listeners.
+
+Nothing here is scored.
+
+## Generated content
+
+`modules/content.js` holds word banks and slot templates rather than fixed lists. A
+mulberry32 PRNG seeded from the date picks each day's material: stable all day so he can
+return to a word he was working on, different tomorrow.
+
+Constraints are encoded in the banks, not left to chance — the gentle-onset bank is
+entirely vowel-initial (that's where the hard glottal attack happens), and the power-word
+bank leans on continuants, since you can prolong /m/ or /s/ but not /p/.
 
 ## Coin economy
 

@@ -4,6 +4,9 @@
 import { computeStreak, restAllowance, dayKey } from './.tmp/state.mjs';
 import { classifyOnset, onsetTargetFrom, setVoiceProfile, voiceThreshold,
          isRoomTooNoisy, ONSET_GOAL_MS } from './.tmp/voice.mjs';
+import { todaySeed, dailyGentleWords, dailyPowerWords, dailyPacingSets,
+         dailyStretchPhrases, dailyPauseSentences, dailyChallenges,
+         dailyTalkPrompts, GENTLE_BANK, PACING_BANK } from './.tmp/content.mjs';
 
 let ok = true;
 const t = (name, cond, detail = '') => {
@@ -70,6 +73,34 @@ for (const quiet of [0.015, 0.03, 0.06, 0.12, 0.3]) {
 }
 setVoiceProfile({ quiet: 0.02, normal: 0.06, loud: 0.15 });
 t('a quiet room is not flagged noisy', !isRoomTooNoisy());
+
+console.log('\nGenerated content — stable within a day, different tomorrow');
+const d1 = new Date('2026-08-14'), d2 = new Date('2026-08-15');
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+t('today\'s words are stable all day',
+  same(dailyGentleWords(5, todaySeed(d1, 1)), dailyGentleWords(5, todaySeed(d1, 1))));
+t('tomorrow\'s are different',
+  !same(dailyGentleWords(5, todaySeed(d1, 1)), dailyGentleWords(5, todaySeed(d2, 1))));
+t('gentle words are all vowel-initial', GENTLE_BANK.every(w => /^[aeiou]/i.test(w)),
+  `${GENTLE_BANK.length} in the bank`);
+t('no word is offered twice in one day',
+  new Set(dailyGentleWords(10, todaySeed(d1, 1))).size === 10);
+t('pacing sets carry the right syllable counts',
+  dailyPacingSets(5, todaySeed(d1, 3)).every((s, i) => s.words.every(w => w.split('-').length === i + 1)));
+t('stretch phrases have their slots filled',
+  dailyStretchPhrases(6, todaySeed(d1, 4)).every(p => !p.text.includes('{')));
+t('pause sentences have their slots filled',
+  dailyPauseSentences(5, todaySeed(d1, 5)).every(p => !p.text.includes('{')));
+t('challenges have their slots filled',
+  dailyChallenges(3, todaySeed(d1, 6)).every(c => !c.text.includes('{') && c.text.length > 5));
+t('talk prompts have their slots filled',
+  dailyTalkPrompts(6, todaySeed(d1, 7)).every(x => !x.includes('{')));
+const seen = new Set();
+for (let i = 0; i < 60; i++) {
+  const d = new Date(2026, 0, 1); d.setDate(d.getDate() + i);
+  dailyGentleWords(10, todaySeed(d, 1)).forEach(w => seen.add(w));
+}
+t('two months of practice draws on a wide pool', seen.size > 40, `${seen.size} distinct words`);
 
 console.log(ok ? '\nUNIT PASS' : '\nUNIT FAIL');
 process.exit(ok ? 0 : 1);

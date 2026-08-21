@@ -11,14 +11,10 @@ import { playDot, playSuccess, playClick } from '../modules/audio.js';
 import { speakModel, cancelSpeech, isSpeechSupported } from '../modules/speech.js';
 import { acquireMic, releaseMic, isMicSupported, calibrateNoiseFloor, createVoiceTracker } from '../modules/voice.js';
 import { createMicPanel } from '../components/micPanel.js';
+import { dailyPacingSets } from '../modules/content.js';
 import { toast, praiseToast } from '../modules/toast.js';
 
-const WORD_SETS = [
-  { words: ['Rain', 'Sun', 'Star', 'Moon', 'Sky'] },
-  { words: ['But-ter', 'Hap-py', 'Pret-ty', 'Sim-ple', 'Eas-y'] },
-  { words: ['Beau-ti-ful', 'Won-der-ful', 'Fan-tas-tic', 'Hap-pi-ness', 'Va-ca-tion'] },
-  { words: ['A-maz-ing', 'To-mor-row', 'Re-mem-ber', 'To-geth-er', 'Un-der-stand'] },
-];
+const WORD_SETS = dailyPacingSets();
 
 const SLOWEST = 1600, FASTEST = 500, STEP = 150;
 const HIT_GRACE_MS = 220;   // voice counts if it lands near the beat
@@ -186,11 +182,15 @@ export function renderPacingDots() {
 
   async function start() {
     if (running) return;
+    running = true;                   // claim before awaiting the mic
+    startBtn.disabled = true;
     playClick();
     cancelSpeech();
 
     const ok = await ensureMic();
     if (!ok) {
+      running = false;
+      startBtn.disabled = false;
       mic.setStatus('No microphone here – say it along anyway! 💙');
       return;
     }

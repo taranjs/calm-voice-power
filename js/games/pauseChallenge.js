@@ -9,16 +9,10 @@ import { playTone, playSuccess, playClick } from '../modules/audio.js';
 import { speakModel, cancelSpeech, isSpeechSupported } from '../modules/speech.js';
 import { acquireMic, releaseMic, isMicSupported, calibrateNoiseFloor, createVoiceTracker } from '../modules/voice.js';
 import { createMicPanel } from '../components/micPanel.js';
+import { dailyPauseSentences } from '../modules/content.js';
 import { toast, praiseToast } from '../modules/toast.js';
 
-const SENTENCES = [
-  { text: 'I am … so happy … today!',     pauses: 2, target: 800 },
-  { text: 'My name … is … very cool!',    pauses: 2, target: 800 },
-  { text: 'I like … cats … and dogs!',    pauses: 2, target: 700 },
-  { text: 'Take a … big … deep breath!',  pauses: 2, target: 900 },
-  { text: 'Today I … went to … the park!',pauses: 2, target: 800 },
-  { text: 'Can I … please have … a turn?',pauses: 2, target: 800 },
-];
+const SENTENCES = dailyPauseSentences();
 
 // How long he must stay quiet after speaking before it counts as a real pause.
 // Deliberately forgiving: the point is noticing the pause, not hitting a stopwatch.
@@ -197,11 +191,15 @@ export function renderPauseChallenge() {
 
   async function startRound() {
     if (listening) return;
+    listening = true;                 // claim before awaiting the mic
+    startBtn.disabled = true;
     playClick();
     cancelSpeech();
 
     const ok = await ensureMic();
     if (!ok) {
+      listening = false;
+      startBtn.disabled = false;
       mic.setStatus('No microphone here – say it out loud anyway! 💙');
       msgEl.textContent = 'Say the sentence with a stop at each …';
       return;

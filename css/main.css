@@ -697,3 +697,55 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--ink-soft); }
 .word-row-actions .btn {
   min-height: 38px; padding: 8px 12px; font-size: 0.9rem;
 }
+
+/* ── TALK TOGETHER ───────────────────────────── */
+.turn-badge {
+  display: inline-block; padding: 5px 16px; border-radius: var(--radius-full);
+  background: var(--sky-light); color: var(--sky);
+  font-family: var(--font-display); font-size: 0.95rem;
+}
+.turn-badge.theirs { background: #FFE8E4; color: var(--coral); }
+.turn-track { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+.turn-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--cloud); border: 2px solid var(--sky-light);
+  transition: background var(--t-med), transform var(--t-med);
+}
+.turn-dot.theirs { border-color: #FFD3CB; }
+.turn-dot.on { background: var(--sky); transform: scale(1.1); }
+.turn-dot.theirs.on { background: var(--coral); }
+
+/* ── BUDDY ───────────────────────────────────── */
+.buddy-face {
+  font-size: 5rem; line-height: 1; margin: 12px 0;
+  transition: transform var(--t-med);
+}
+.buddy-face.stuck { animation: buddyStuck 0.42s ease-in-out infinite; }
+@keyframes buddyStuck {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50%      { transform: translateY(-4px) rotate(-3deg); }
+}
+.speech-bubble {
+  display: inline-block; position: relative;
+  background: var(--sky-pale); border: 2px solid var(--sky-light);
+  border-radius: var(--radius-md); padding: 12px 18px;
+  font-family: var(--font-display); font-size: 1.15rem; color: var(--ink);
+  min-width: 120px; min-height: 48px;
+}
+.speech-bubble::after {
+  content: ''; position: absolute; top: -9px; left: 50%; margin-left: -8px;
+  border-left: 8px solid transparent; border-right: 8px solid transparent;
+  border-bottom: 9px solid var(--sky-light);
+}
+.stuck-part { color: var(--sun-warm); letter-spacing: 1px; }
+.strategy-btn {
+  width: 100%; display: flex; align-items: center; gap: 12px;
+  background: var(--cloud); border: 2px solid var(--sky-light);
+  border-radius: var(--radius-md); padding: 14px 16px; margin-bottom: 10px;
+  font-family: var(--font-body); font-weight: 800; font-size: 0.95rem;
+  color: var(--ink); text-align: left; cursor: pointer;
+  touch-action: manipulation; transition: all var(--t-fast);
+}
+.strategy-btn:active { transform: scale(0.98); }
+.strategy-btn:hover { border-color: var(--sun); background: #FFF8E6; }
+.strategy-icon { font-size: 1.6rem; flex-shrink: 0; }

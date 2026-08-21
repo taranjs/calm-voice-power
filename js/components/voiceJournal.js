@@ -5,6 +5,7 @@
 // piece of evidence the app can offer that his own effort changed something.
 import { navigate } from '../modules/router.js';
 import { dbGetAll, dbDelete } from '../modules/db.js';
+import { state } from '../modules/state.js';
 import { createAudioFromBlob, playClick } from '../modules/audio.js';
 import { toast } from '../modules/toast.js';
 
@@ -61,6 +62,48 @@ export function renderVoiceJournal() {
 
   function daysBetween(a, b) {
     return Math.max(0, Math.round((new Date(b) - new Date(a)) / 86400000));
+  }
+
+  /**
+   * Hand a Then/Now pair to a real person. Web Share Level 2 puts the audio
+   * straight into Messages or WhatsApp on a phone; on desktop it falls back to
+   * downloading the files so they can be attached by hand. Nothing leaves the
+   * device unless he chooses where it goes.
+   */
+  async function sharePair(then, now, btn) {
+    const label = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Sharing…';
+    const gap = daysBetween(then.date, now.date);
+    const name = state.avatar?.name || 'I';
+    const text = `${name} recorded "${then.promptText || 'this'}" ${gap} days apart. `
+               + `Listen to the difference! 🎧`;
+    const ext = (then.blob.type || '').includes('mp4') ? 'm4a' : 'webm';
+    const files = [
+      new File([then.blob], `then-${fmtDate(then.date).replace(/ /g, '-')}.${ext}`, { type: then.blob.type }),
+      new File([now.blob], `now-${fmtDate(now.date).replace(/ /g, '-')}.${ext}`, { type: now.blob.type }),
+    ];
+
+    try {
+      if (navigator.canShare?.({ files }) && navigator.share) {
+        await navigator.share({ files, title: 'Then vs Now', text });
+      } else {
+        files.forEach(f => {
+          const url = URL.createObjectURL(f);
+          const a = document.createElement('a');
+          a.href = url; a.download = f.name;
+          document.body.appendChild(a); a.click(); a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 10000);
+        });
+        toast('Saved both recordings — send them to someone! 💌', 'success');
+      }
+    } catch (e) {
+      // A cancelled share is not an error; say nothing.
+      if (e?.name !== 'AbortError') toast('Couldn’t share those');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = label;
+    }
   }
 
   function makePlayButton(rec, text, cls = 'btn-ghost', rate = 1) {
@@ -146,6 +189,17 @@ export function renderVoiceJournal() {
         const [thenSlot, nowSlot] = card.querySelectorAll('.compare-actions');
         thenSlot.appendChild(makePlayButton(then, '▶ Play'));
         nowSlot.appendChild(makePlayButton(now, '▶ Play', 'btn-primary'));
+
+        // Progress is worth far more when somebody else hears it.
+        const shareRow = document.createElement('div');
+        shareRow.className = 'action-row mt-16';
+        const share = document.createElement('button');
+        share.className = 'btn btn-mint';
+        share.textContent = '💌 Send to someone';
+        share.addEventListener('click', () => sharePair(then, now, share));
+        shareRow.appendChild(share);
+        card.appendChild(shareRow);
+
         body.appendChild(card);
       });
     } else {

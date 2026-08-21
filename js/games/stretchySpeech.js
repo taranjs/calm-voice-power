@@ -7,16 +7,10 @@ import { playSuccess, playClick } from '../modules/audio.js';
 import { speakModel, cancelSpeech, isSpeechSupported } from '../modules/speech.js';
 import { acquireMic, releaseMic, isMicSupported, calibrateNoiseFloor, createVoiceTracker } from '../modules/voice.js';
 import { createMicPanel } from '../components/micPanel.js';
+import { dailyStretchPhrases } from '../modules/content.js';
 import { toast, praiseToast } from '../modules/toast.js';
 
-const PHRASES = [
-  { text: 'Heeey there!',         target: 1200, hint: 'Stretch the H-E-Y!' },
-  { text: 'Goood morning!',       target: 1000, hint: 'Make the OOO longer' },
-  { text: 'Myyy name is…',        target: 1100, hint: 'Float on the M-Y' },
-  { text: 'I loooove this!',      target: 1300, hint: 'Ride the LOVE sound' },
-  { text: 'Sooo much fun!',       target: 900,  hint: 'Stretch the S gently' },
-  { text: 'Niiiice to meet you!', target: 1400, hint: 'Glide through NICE' },
-];
+const PHRASES = dailyStretchPhrases();
 
 export function renderStretchySpeech() {
   const page = document.createElement('div');
@@ -150,12 +144,16 @@ export function renderStretchySpeech() {
 
   async function startTake() {
     if (listening) return;
+    listening = true;                 // claim before awaiting the mic
+    goBtn.disabled = true;
     playClick();
     cancelSpeech();
     resetBar();
 
     const ok = await ensureMic();
     if (!ok) {
+      listening = false;
+      goBtn.disabled = false;
       mic.setStatus('No microphone here – you can still practise out loud! 💙');
       msg.textContent = 'Say it stretched anyway, then tap Next.';
       return;

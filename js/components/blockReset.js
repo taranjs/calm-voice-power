@@ -7,14 +7,10 @@ import { awardRep, saveState, recordPractice, noteBest } from '../modules/state.
 import { playTone, playSuccess, playClick } from '../modules/audio.js';
 import { cancelSpeech } from '../modules/speech.js';
 import { playWordModel, stopModel, customWords } from '../modules/myWords.js';
+import { dailyPowerWords } from '../modules/content.js';
 import { acquireMic, releaseMic, isMicSupported, calibrateNoiseFloor, createVoiceTracker } from '../modules/voice.js';
 import { createMicPanel } from '../components/micPanel.js';
 import { toast, praiseToast } from '../modules/toast.js';
-
-export const POWER_WORDS = [
-  'EASY', 'SLOW', 'CALM', 'BREATH', 'SMOOTH',
-  'GENTLE', 'SOFT', 'BRAVE', 'STRONG', 'READY'
-];
 
 const FULL_STRETCH_MS = 2000;   // sustained voicing for a complete stretch
 const MAX_GAP_PX = 22;
@@ -27,7 +23,7 @@ export function renderBlockReset() {
   let tracker = null, lastLit = -1;
   // His own words are mixed in ahead of the built-ins: practising with words he
   // chose beats practising with mine.
-  let words = [...POWER_WORDS];
+  let words = dailyPowerWords();
 
   page.innerHTML = `
     <div class="page-header flex-between">
@@ -168,6 +164,8 @@ export function renderBlockReset() {
 
   async function startTake() {
     if (listening) return;
+    listening = true;                 // claim before awaiting the mic
+    stretchBtn.disabled = true;
     playClick();
     cancelSpeech();
     praiseBox.style.display = 'none';
@@ -175,6 +173,8 @@ export function renderBlockReset() {
 
     const ok = await ensureMic();
     if (!ok) {
+      listening = false;
+      stretchBtn.disabled = false;
       mic.setStatus('No microphone here – stretch it out loud anyway! 💙');
       hintText.textContent = 'Say it slowly and stretched, then tap Next Word.';
       return;
@@ -204,7 +204,7 @@ export function renderBlockReset() {
   // Pull his words in, then redraw so the first word can already be one of his.
   customWords().then(mine => {
     if (!mine.length) return;
-    words = [...mine, ...POWER_WORDS];
+    words = [...mine, ...dailyPowerWords()];
     loadWord();
   }).catch(() => { /* built-ins are a fine fallback */ });
 

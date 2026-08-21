@@ -168,10 +168,13 @@ export function renderVoiceSetup() {
 
   async function startStep() {
     if (listening) return;
+    listening = true;                 // claim before awaiting the mic
+    goBtn.disabled = true;
     playClick();
 
     const ok = await ensureMic();
     if (!ok) {
+      listening = false;
       mic.setStatus('No microphone here – the app will use its usual settings 💙');
       goBtn.disabled = true;
       return;

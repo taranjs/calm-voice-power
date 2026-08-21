@@ -8,6 +8,7 @@ import { state, awardRep, saveState, recordPractice, addOnsetSample } from '../m
 import { playSuccess, playClick, playGentleRamp } from '../modules/audio.js';
 import { cancelSpeech } from '../modules/speech.js';
 import { playWordModel, stopModel, customWords } from '../modules/myWords.js';
+import { dailyGentleWords } from '../modules/content.js';
 import {
   acquireMic, releaseMic, isMicSupported, calibrateNoiseFloor, createVoiceTracker,
   onsetTargetFrom, ONSET_GOAL_MS,
@@ -15,7 +16,6 @@ import {
 import { createMicPanel } from '../components/micPanel.js';
 import { toast, praiseToast } from '../modules/toast.js';
 
-export const GENTLE_WORDS = ['Apple', 'Air', 'Open', 'Every', 'Umbrella', 'Easy', 'Only', 'Able', 'Elephant', 'Ice'];
 const INSTRUCTIONS = [
   'Let the word start very softly – like a feather landing 🪶',
   'Breathe out a little bit first, then gently begin the word',
@@ -47,7 +47,7 @@ export function renderGentleOnset() {
   let score = 0, tries = 0, wordIdx = 0;
   // Only his vowel-initial words join this list. Gentle-onset work targets the
   // hard glottal attack that happens on vowels, so "Pizza" would not serve it.
-  let words = [...GENTLE_WORDS];
+  let words = dailyGentleWords();
   let listening = false, micReady = false, loggedToday = false;
   let tracker = null;
 
@@ -61,7 +61,7 @@ export function renderGentleOnset() {
       <p style="font-size:0.85rem;color:var(--sky);font-weight:700;margin-bottom:8px" id="instruction">
         ${INSTRUCTIONS[0]}
       </p>
-      <div class="game-prompt" id="word-prompt">${GENTLE_WORDS[0]}</div>
+      <div class="game-prompt" id="word-prompt">${dailyGentleWords()[0]}</div>
 
       <div class="action-row mb-16">
         <button class="btn btn-ghost" id="ramp-btn" style="font-size:0.85rem">🌬️ Soft start</button>
@@ -91,7 +91,7 @@ export function renderGentleOnset() {
       </div>
       <div class="card card-sun text-center" style="padding:12px 16px">
         <div style="font-size:0.75rem;font-weight:700;color:var(--sun-warm)">WORD</div>
-        <div style="font-family:var(--font-display);font-size:1.4rem" id="word-num">1/${GENTLE_WORDS.length}</div>
+        <div style="font-family:var(--font-display);font-size:1.4rem" id="word-num">1/${dailyGentleWords().length}</div>
       </div>
     </div>
   `;
@@ -182,12 +182,16 @@ export function renderGentleOnset() {
 
   async function startTake() {
     if (listening) return;
+    listening = true;                 // claim before awaiting the mic
+    actionBtn.disabled = true;
     playClick();
     cancelSpeech();
     riseNote.textContent = '';
 
     const ok = await ensureMic();
     if (!ok) {
+      listening = false;
+      actionBtn.disabled = false;
       mic.setStatus('No microphone here – practise out loud anyway! 💙');
       phaseLabel.textContent = 'Say it gently, then tap Next word.';
       return;
@@ -227,7 +231,7 @@ export function renderGentleOnset() {
   // Mix in any of his own words that start on a vowel sound.
   customWords({ vowelInitial: true }).then(mine => {
     if (!mine.length) return;
-    words = [...mine, ...GENTLE_WORDS];
+    words = [...mine, ...dailyGentleWords()];
     wordIdx = 0;
     loadWord();
   }).catch(() => { /* built-ins are a fine fallback */ });

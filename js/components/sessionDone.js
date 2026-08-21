@@ -69,6 +69,7 @@ export function renderSessionDone(params = {}) {
     <div class="card card-soft text-center mt-24">
       <p style="font-size:0.9rem;font-weight:700">Go and show someone what you can do 💛</p>
       <p style="font-size:0.85rem;margin-top:4px">Your voice is for talking to people, not just to a screen.</p>
+      <div class="action-row mt-16"><button class="btn btn-mint" id="talk-btn">💬 Talk Together</button></div>
     </div>
   `;
 
@@ -89,6 +90,7 @@ export function renderSessionDone(params = {}) {
 
   page.querySelector('#powers-btn').addEventListener('click', () => { playClick(); navigate('powers'); });
   page.querySelector('#home-btn').addEventListener('click', () => { playClick(); navigate('home'); });
+  page.querySelector('#talk-btn').addEventListener('click', () => { playClick(); navigate('talk'); });
   page.querySelector('#again-btn').addEventListener('click', () => { playClick(); navigate('practice'); });
 
   return page;

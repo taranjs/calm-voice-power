@@ -8,6 +8,7 @@ const TOOLS = [
   { route: 'pacing',      icon: '🎵', label: 'Pacing Dots',   sub: 'Speech rhythm trainer',    color: 'var(--sun-warm)', bg: '#FFF3CC' },
   { route: 'recorder',    icon: '🎙️', label: 'Record Me!',    sub: 'Hear your brave voice',    color: 'var(--mint)',     bg: 'var(--mint-light)' },
   { route: 'block-reset', icon: '✨', label: 'Word Stretch',  sub: 'Gently unstick words',     color: 'var(--lavender)', bg: 'var(--lavender-light)' },
+  { route: 'talk',        icon: '💛', label: 'Talk Together',   sub: 'Take turns with a real person', color: 'var(--coral)', bg: '#FFE8E4' },
   { route: 'challenges',  icon: '🌍', label: 'Real Challenges', sub: 'Brave everyday tries',   color: 'var(--coral)',    bg: '#FFE8E4' },
   { route: 'journal',     icon: '🎧', label: 'Voice Journal',   sub: 'Hear how far you\'ve come', color: 'var(--sun-warm)', bg: '#FFF3CC' },
   { route: 'my-words',    icon: '✍️', label: 'My Words',           sub: 'Your words, in your own voice', color: 'var(--mint)',  bg: 'var(--mint-light)' },
