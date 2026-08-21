@@ -24,6 +24,7 @@ import { renderVoiceSetup }        from './components/voiceSetup.js';
 import { renderVoicePowers }       from './components/voicePowers.js';
 import { renderSessionDone }       from './components/sessionDone.js';
 import { renderSessionBar }        from './components/sessionBar.js';
+import { renderMyWords }           from './components/myWords.js';
 
 // Games
 import { renderGentleOnset }   from './games/gentleOnset.js';
@@ -85,6 +86,7 @@ async function boot() {
   route('journal',       renderVoiceJournal);
   route('voice-setup',   renderVoiceSetup);
   route('powers',        renderVoicePowers);
+  route('my-words',      renderMyWords);
   route('game-gentle',   renderGentleOnset);
   route('game-stretchy', renderStretchySpeech);
   route('game-pause',    renderPauseChallenge);

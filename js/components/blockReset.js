@@ -5,12 +5,13 @@
 import { navigate } from '../modules/router.js';
 import { awardRep, saveState, recordPractice, noteBest } from '../modules/state.js';
 import { playTone, playSuccess, playClick } from '../modules/audio.js';
-import { speakModel, cancelSpeech, isSpeechSupported } from '../modules/speech.js';
+import { cancelSpeech } from '../modules/speech.js';
+import { playWordModel, stopModel, customWords } from '../modules/myWords.js';
 import { acquireMic, releaseMic, isMicSupported, calibrateNoiseFloor, createVoiceTracker } from '../modules/voice.js';
 import { createMicPanel } from '../components/micPanel.js';
 import { toast, praiseToast } from '../modules/toast.js';
 
-const POWER_WORDS = [
+export const POWER_WORDS = [
   'EASY', 'SLOW', 'CALM', 'BREATH', 'SMOOTH',
   'GENTLE', 'SOFT', 'BRAVE', 'STRONG', 'READY'
 ];
@@ -24,6 +25,9 @@ export function renderBlockReset() {
 
   let wordIdx = 0, listening = false, micReady = false, loggedToday = false;
   let tracker = null, lastLit = -1;
+  // His own words are mixed in ahead of the built-ins: practising with words he
+  // chose beats practising with mine.
+  let words = [...POWER_WORDS];
 
   page.innerHTML = `
     <div class="page-header flex-between">
@@ -75,9 +79,8 @@ export function renderBlockReset() {
   const mic = createMicPanel({ status: 'Tap Stretch and I’ll listen 👂' });
   page.querySelector('#mic-slot').appendChild(mic.el);
 
-  if (!isSpeechSupported()) modelBtn.style.display = 'none';
 
-  function currentWord() { return POWER_WORDS[wordIdx]; }
+  function currentWord() { return words[wordIdx]; }
 
   function loadWord() {
     lettersEl.innerHTML = currentWord().split('').map((l, i) =>
@@ -198,6 +201,13 @@ export function renderBlockReset() {
     setTimeout(() => { if (listening) finishTake(); }, 12000);
   }
 
+  // Pull his words in, then redraw so the first word can already be one of his.
+  customWords().then(mine => {
+    if (!mine.length) return;
+    words = [...mine, ...POWER_WORDS];
+    loadWord();
+  }).catch(() => { /* built-ins are a fine fallback */ });
+
   loadWord();
 
   stretchBtn.addEventListener('click', startTake);
@@ -206,9 +216,10 @@ export function renderBlockReset() {
     playClick();
     modelBtn.disabled = true;
     mic.setStatus('Hear how long that sound lasts… 🔊');
-    await speakModel(currentWord(), { rate: 0.4 });
+    const source = await playWordModel(currentWord(), { rate: 0.4 });
     modelBtn.disabled = false;
-    mic.setStatus('Now your turn 👂');
+    mic.setStatus(source === 'own' ? 'That was you! 🎤' : 'Now your turn 👂',
+                  source === 'own' ? 'good' : '');
   });
 
   page.querySelector('#next-word-btn').addEventListener('click', () => {
@@ -219,7 +230,7 @@ export function renderBlockReset() {
     mic.listening(false);
     stretchBtn.disabled = false;
     stretchBtn.textContent = '🎤 Stretch!';
-    wordIdx = (wordIdx + 1) % POWER_WORDS.length;
+    wordIdx = (wordIdx + 1) % words.length;
     loadWord();
   });
 
@@ -228,6 +239,7 @@ export function renderBlockReset() {
   page.__cleanup = () => {
     tracker?.stop();
     cancelSpeech();
+    stopModel();
     if (micReady) releaseMic();
   };
 

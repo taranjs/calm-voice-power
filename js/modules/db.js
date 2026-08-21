@@ -1,6 +1,6 @@
 // js/modules/db.js – IndexedDB wrapper
 const DB_NAME = 'CalmVoiceDB';
-const DB_VER  = 1;
+const DB_VER  = 2;   // v2 adds `words`: the child's own words and voice models
 
 let _db = null;
 
@@ -10,6 +10,9 @@ const STORES = {
   rewards:    { keyPath: 'id' },
   settings:   { keyPath: 'key' },
   recordings: { keyPath: 'id', autoIncrement: true },
+  // Keyed by the normalised word, so a word can only ever have one model and
+  // looking one up during a game is a single get().
+  words:      { keyPath: 'id' },
 };
 
 export function openDB() {

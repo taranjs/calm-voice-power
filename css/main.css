@@ -681,3 +681,19 @@ p  { font-size: 1rem; line-height: 1.6; color: var(--ink-soft); }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--sky-light); border-radius: 3px; }
+
+/* ── MY WORDS ────────────────────────────────── */
+.word-list { display: flex; flex-direction: column; gap: 8px; }
+.word-row {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--cloud); border: 2px solid var(--sky-light);
+  border-radius: var(--radius-md); padding: 10px 12px;
+}
+.word-row.has-model { border-color: var(--mint); background: var(--mint-light); }
+.word-row-name { font-weight: 800; color: var(--ink); font-size: 0.98rem; }
+.word-row-note { font-size: 0.75rem; color: var(--ink-faint); font-weight: 700; margin-top: 2px; }
+.word-row.has-model .word-row-note { color: var(--mint); }
+.word-row-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.word-row-actions .btn {
+  min-height: 38px; padding: 8px 12px; font-size: 0.9rem;
+}

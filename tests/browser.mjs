@@ -1,0 +1,253 @@
+// tests/browser.mjs – drives the real app in Chromium with a fake microphone.
+//
+// Chrome's --use-file-for-fake-audio-capture feeds a WAV in as mic input, so the
+// voice detection runs for real rather than being mocked. Run via tests/run.sh,
+// which locates Playwright and serves the app.
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+const FIXTURES = path.join(HERE, 'fixtures');
+const BASE = process.env.BASE_URL || 'http://localhost:8137';
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE);
+
+let ok = true;
+const t = (name, cond, detail = '') => {
+  console.log(`  ${cond ? 'PASS' : 'FAIL'}  ${name}${detail ? ` — ${detail}` : ''}`);
+  ok = cond && ok;
+};
+
+async function open(wav = 'gentle.wav') {
+  const browser = await chromium.launch({ args: [
+    '--use-fake-ui-for-media-stream',
+    '--use-fake-device-for-media-stream',
+    `--use-file-for-fake-audio-capture=${path.join(FIXTURES, wav)}`,
+    '--autoplay-policy=no-user-gesture-required',
+  ]});
+  const ctx = await browser.newContext({ permissions: ['microphone'], viewport: { width: 420, height: 900 } });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', e => errors.push('pageerror: ' + e.message));
+  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+  await page.goto(BASE, { waitUntil: 'networkidle' });
+  await page.waitForSelector('#nav-bar');
+  await page.evaluate(() => import('./js/modules/router.js').then(m => (window.__nav = m.navigate)));
+  return { browser, page, errors };
+}
+
+// ── Every screen renders, and the mic is handed back on the way out ──
+{
+  console.log('\nRoutes and microphone handling');
+  const { browser, page, errors } = await open();
+  const routes = [
+    ['home', 'text=What do you want to do?'], ['practice', 'text=Practice Tools'],
+    ['games', 'text=Mini Games'], ['streak', 'text=Confidence Road'],
+    ['journal', 'text=Voice Journal'], ['powers', 'text=My Voice Powers'],
+    ['my-words', 'text=My Words'], ['voice-setup', 'text=Teach me your voice'],
+    ['rewards', 'text=Rewards Shop'], ['parent', 'text=Parent Dashboard'],
+    ['breathing', 'text=Calm Breath'], ['pacing', 'text=Pacing Dots'],
+    ['recorder', 'text=Record Me!'], ['block-reset', 'text=Word Stretch'],
+    ['challenges', "text=Today's Challenges"], ['game-gentle', 'text=Gentle Start'],
+    ['game-stretchy', 'text=Stretchy Speech'], ['game-pause', 'text=Pause Power'],
+    ['avatar', 'text=My Avatar'],
+  ];
+  let allRendered = true;
+  for (const [r, sel] of routes) {
+    await page.evaluate(x => window.__nav(x), r);
+    await page.waitForTimeout(280);
+    const seen = await page.locator(sel).first().isVisible().catch(() => false);
+    if (!seen) { console.log(`    missing: ${r} -> ${sel}`); allRendered = false; }
+  }
+  t(`all ${routes.length} routes render`, allRendered);
+
+  await page.evaluate(() => window.__nav('game-stretchy'));
+  await page.waitForTimeout(250);
+  await page.click('#go-btn');
+  // The fixture is mostly silence with one tone burst, so don't assume the
+  // burst lands inside a fixed wait — poll until the bar actually moves.
+  await page.waitForFunction(
+    () => parseFloat(document.querySelector('#stretch-fill').style.width) > 0,
+    { timeout: 15000 }).catch(() => {});
+  const bar = await page.locator('#stretch-fill').evaluate(el => el.style.width);
+  t('sustained voice fills the bar', parseFloat(bar) > 0, bar);
+  await page.evaluate(() => window.__nav('home'));
+  await page.waitForTimeout(300);
+  const live = await page.evaluate(() => import('./js/modules/voice.js').then(m => m.readLevel()));
+  t('microphone released when leaving a voice page', live === 0);
+  t('no console errors', errors.length === 0, errors.join(' | '));
+  await browser.close();
+}
+
+// ── A hard attack and a gentle one must be told apart ──
+{
+  console.log('\nGentle-onset detection, end to end');
+  const results = {};
+  for (const wav of ['hard.wav', 'gentle.wav']) {
+    const { browser, page } = await open(wav);
+    const seen = [];
+    for (let i = 0; i < 3; i++) {
+      await page.evaluate(() => window.__nav('game-gentle'));
+      await page.waitForTimeout(220);
+      await page.click('#action-btn');
+      await page.waitForFunction(() => document.querySelector('#action-btn').disabled, { timeout: 10000 }).catch(() => {});
+      await page.waitForFunction(() => !document.querySelector('#action-btn').disabled, { timeout: 20000 }).catch(() => {});
+      const label = (await page.locator('#phase-label').textContent()).trim();
+      seen.push(label.includes('Feather-soft') ? 'gentle' : label.includes('even softer') ? 'okay'
+              : label.includes('jumped in') ? 'hard' : 'no-voice');
+    }
+    results[wav] = seen;
+    console.log(`    ${wav} -> ${seen.join(', ')}`);
+    await browser.close();
+  }
+  t('a hard attack is never rewarded as gentle', results['hard.wav'].every(q => q !== 'gentle'));
+  t('a real easy onset is recognised', results['gentle.wav'].some(q => q === 'gentle'));
+}
+
+// ── Calibration makes a quiet child audible ──
+{
+  console.log('\nVoice calibration');
+  const { browser, page, errors } = await open('soft.wav');
+  t('home offers setup when uncalibrated', await page.locator('#voice-setup-cta').isVisible());
+  await page.evaluate(() => window.__nav('voice-setup'));
+  await page.waitForTimeout(250);
+  for (let i = 0; i < 8; i++) {
+    await page.click('#go-btn');
+    await page.waitForFunction(() => document.querySelector('#go-btn').disabled, { timeout: 10000 }).catch(() => {});
+    await page.waitForFunction(() => !document.querySelector('#go-btn').disabled
+      || document.querySelector('#result-card').style.display === '', { timeout: 20000 }).catch(() => {});
+    await page.waitForTimeout(700);
+    if (await page.locator('#result-card').isVisible()) break;
+  }
+  t('calibration finishes even when the voices are alike', await page.locator('#result-card').isVisible());
+  const prof = await page.evaluate(() => import('./js/modules/state.js').then(s => s.state.voiceProfile));
+  t('all three levels stored', prof.quiet > 0 && prof.normal > 0 && prof.loud > 0);
+  const th = await page.evaluate(async () => {
+    const v = await import('./js/modules/voice.js');
+    await v.acquireMic(); await v.calibrateNoiseFloor(700);
+    const x = v.voiceThreshold(); v.releaseMic(); return x;
+  });
+  t('threshold sits below his quiet voice', th < prof.quiet, `${th.toFixed(4)} < ${prof.quiet.toFixed(4)}`);
+  t('no console errors', errors.length === 0, errors.join(' | '));
+  await browser.close();
+}
+
+// ── The session loop, which feeds the parent dashboard ──
+{
+  console.log('\nPractice session');
+  const { browser, page, errors } = await open();
+  t('no session bar before starting', await page.locator('#session-bar').isHidden());
+  await page.click('#emotion-cta');
+  await page.waitForTimeout(250);
+  await page.locator('.emoji-btn').nth(1).click();
+  await page.click('#confirm-emotion');
+  await page.waitForTimeout(400);
+  t('check-in leads into the practice tools', await page.locator('text=Practice Tools').isVisible());
+  for (const a of ['breathing', 'word-stretch', 'gentle-onset']) {
+    await page.evaluate(x => import('./js/modules/state.js').then(s => s.recordPractice(x)), a);
+    await page.waitForTimeout(120);
+  }
+  t('bar fills as activities complete', (await page.locator('.session-pip.on').count()) === 3);
+  await page.click('#session-finish');
+  await page.waitForTimeout(300);
+  await page.locator('.emoji-btn').nth(4).click();
+  await page.click('#confirm-emotion');
+  await page.waitForTimeout(450);
+  t('celebration screen shown', await page.locator('text=Session finished!').isVisible());
+  const rows = await page.evaluate(() => import('./js/modules/state.js').then(s =>
+    s.state.sessions.filter(x => x.type === 'session').map(x => ({ b: x.emotionBefore, a: x.emotionAfter }))));
+  t('a session row carries both emotions', rows.length === 1 && rows[0].b === 2 && rows[0].a === 5, JSON.stringify(rows));
+  await page.evaluate(() => window.__nav('parent'));
+  await page.waitForTimeout(350);
+  t('the dashboard emotion trend is no longer empty',
+    !(await page.locator('text=Complete sessions to see emotion trends').isVisible()));
+  t('no console errors', errors.length === 0, errors.join(' | '));
+  await browser.close();
+}
+
+// ── Coins taper, and personal bests only count when they are bests ──
+{
+  console.log('\nRewards');
+  const { browser, page } = await open();
+  const econ = await page.evaluate(async () => {
+    const s = await import('./js/modules/state.js');
+    const paid = [];
+    for (let i = 0; i < 8; i++) paid.push(await s.awardRep('word-stretch'));
+    return { paid, other: await s.awardRep('gentle-onset') };
+  });
+  console.log(`    8 reps paid: ${econ.paid.join(', ')}`);
+  t('first reps pay full', econ.paid.slice(0, 3).every(c => c === 5));
+  t('later reps taper but never hit zero', econ.paid[7] < econ.paid[0] && econ.paid.every(c => c >= 1));
+  t('a different activity pays full again', econ.other === 5);
+  t('grinding is not the fast path', econ.paid.reduce((a, b) => a + b, 0) < 40);
+  const best = await page.evaluate(async () => {
+    const s = await import('./js/modules/state.js');
+    return { a: await s.noteBest('holdMs', 2100), b: await s.noteBest('holdMs', 1800),
+             c: await s.noteBest('holdMs', 3000), v: s.state.bests.holdMs };
+  });
+  t('a best is recorded, a worse attempt is not', best.a && !best.b && best.c && best.v === 3000);
+  await browser.close();
+}
+
+// ── My Words: his own words, in his own voice ──
+{
+  console.log('\nMy Words');
+  const { browser, page, errors } = await open();
+  const db = await page.evaluate(async () => {
+    const d = await import('./js/modules/db.js');
+    await d.setSetting('canary', 'still-here');
+    return { stores: [...(await d.openDB()).objectStoreNames], canary: await d.getSetting('canary') };
+  });
+  t('the v2 upgrade adds the words store', db.stores.includes('words'));
+  t('existing stores survive the bump',
+    ['sessions', 'settings', 'recordings', 'rewards', 'challenges'].every(s => db.stores.includes(s)));
+  t('existing settings survive', db.canary === 'still-here');
+
+  await page.evaluate(() => window.__nav('my-words'));
+  await page.waitForTimeout(450);
+  t('built-in words are listed', (await page.locator('.word-row').count()) >= 20);
+  await page.fill('#word-input', 'Dinosaur');
+  await page.click('#add-word-btn');
+  await page.waitForTimeout(400);
+  t('a word of his own appears', await page.locator('text=My own words ✍️ (1)').isVisible());
+
+  await page.locator('.word-row').filter({ hasText: 'Dinosaur' }).first()
+    .locator('button[aria-label^="Record"]').click();
+  await page.waitForSelector('#rec-panel:visible', { timeout: 5000 });
+  await page.waitForFunction(() => document.querySelector('#rec-panel').style.display === 'none',
+    { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(500);
+  const stored = await page.evaluate(() => import('./js/modules/myWords.js').then(m => m.listWords())
+    .then(ws => ws.filter(w => w.blob).map(w => ({ id: w.id, size: w.blob.size, rise: w.riseMs }))));
+  console.log(`    stored: ${JSON.stringify(stored)}`);
+  t('his recording is saved against the word', stored.length === 1 && stored[0].id === 'dinosaur');
+  t('the blob holds real audio', (stored[0]?.size || 0) > 1000, `${stored[0]?.size} bytes`);
+  t('the take was analysed for onset', stored[0]?.rise !== null && stored[0]?.rise !== undefined);
+
+  t('the games would play his voice',
+    (await page.evaluate(() => import('./js/modules/myWords.js').then(m => m.playWordModel('Dinosaur')))) === 'own');
+  t('un-recorded words fall back to the synthesiser',
+    (await page.evaluate(() => import('./js/modules/myWords.js').then(m => m.playWordModel('Umbrella')))) === 'tts');
+
+  await page.evaluate(() => window.__nav('block-reset'));
+  await page.waitForTimeout(550);
+  t('his word leads the Word Stretch pool',
+    (await page.locator('#word-letters').textContent()).trim().toUpperCase() === 'DINOSAUR');
+
+  await page.evaluate(() => window.__nav('game-gentle'));
+  await page.waitForTimeout(550);
+  const gw = (await page.locator('#word-prompt').textContent()).trim().toLowerCase();
+  t('a consonant word is kept out of Gentle Start', gw !== 'dinosaur', `showing "${gw}"`);
+
+  await page.evaluate(() => import('./js/modules/myWords.js').then(m => m.addCustomWord('Octopus')));
+  await page.evaluate(() => window.__nav('home'));
+  await page.waitForTimeout(150);
+  await page.evaluate(() => window.__nav('game-gentle'));
+  await page.waitForTimeout(550);
+  t('but a vowel-initial one of his does join it',
+    (await page.locator('#word-prompt').textContent()).trim().toLowerCase() === 'octopus');
+  t('no console errors', errors.length === 0, errors.join(' | '));
+  await browser.close();
+}
+
+console.log(ok ? '\nBROWSER PASS' : '\nBROWSER FAIL');
+process.exit(ok ? 0 : 1);

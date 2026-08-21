@@ -1,1 +1,5 @@
 .DS_Store
+
+# test fixtures are generated, not committed
+tests/fixtures/
+tests/.tmp/

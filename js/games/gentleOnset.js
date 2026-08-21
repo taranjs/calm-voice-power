@@ -6,7 +6,8 @@
 import { navigate } from '../modules/router.js';
 import { state, awardRep, saveState, recordPractice, addOnsetSample } from '../modules/state.js';
 import { playSuccess, playClick, playGentleRamp } from '../modules/audio.js';
-import { speakModel, cancelSpeech, isSpeechSupported } from '../modules/speech.js';
+import { cancelSpeech } from '../modules/speech.js';
+import { playWordModel, stopModel, customWords } from '../modules/myWords.js';
 import {
   acquireMic, releaseMic, isMicSupported, calibrateNoiseFloor, createVoiceTracker,
   onsetTargetFrom, ONSET_GOAL_MS,
@@ -14,7 +15,7 @@ import {
 import { createMicPanel } from '../components/micPanel.js';
 import { toast, praiseToast } from '../modules/toast.js';
 
-const WORDS = ['Apple', 'Air', 'Open', 'Every', 'Umbrella', 'Easy', 'Only', 'Able', 'Elephant', 'Ice'];
+export const GENTLE_WORDS = ['Apple', 'Air', 'Open', 'Every', 'Umbrella', 'Easy', 'Only', 'Able', 'Elephant', 'Ice'];
 const INSTRUCTIONS = [
   'Let the word start very softly – like a feather landing 🪶',
   'Breathe out a little bit first, then gently begin the word',
@@ -44,6 +45,9 @@ export function renderGentleOnset() {
   page.className = 'page';
 
   let score = 0, tries = 0, wordIdx = 0;
+  // Only his vowel-initial words join this list. Gentle-onset work targets the
+  // hard glottal attack that happens on vowels, so "Pizza" would not serve it.
+  let words = [...GENTLE_WORDS];
   let listening = false, micReady = false, loggedToday = false;
   let tracker = null;
 
@@ -57,7 +61,7 @@ export function renderGentleOnset() {
       <p style="font-size:0.85rem;color:var(--sky);font-weight:700;margin-bottom:8px" id="instruction">
         ${INSTRUCTIONS[0]}
       </p>
-      <div class="game-prompt" id="word-prompt">${WORDS[0]}</div>
+      <div class="game-prompt" id="word-prompt">${GENTLE_WORDS[0]}</div>
 
       <div class="action-row mb-16">
         <button class="btn btn-ghost" id="ramp-btn" style="font-size:0.85rem">🌬️ Soft start</button>
@@ -87,7 +91,7 @@ export function renderGentleOnset() {
       </div>
       <div class="card card-sun text-center" style="padding:12px 16px">
         <div style="font-size:0.75rem;font-weight:700;color:var(--sun-warm)">WORD</div>
-        <div style="font-family:var(--font-display);font-size:1.4rem" id="word-num">1/${WORDS.length}</div>
+        <div style="font-family:var(--font-display);font-size:1.4rem" id="word-num">1/${GENTLE_WORDS.length}</div>
       </div>
     </div>
   `;
@@ -105,9 +109,8 @@ export function renderGentleOnset() {
   const mic = createMicPanel({ status: 'Tap “My Turn” when you’re ready 👂' });
   page.querySelector('#mic-slot').appendChild(mic.el);
 
-  if (!isSpeechSupported()) modelBtn.style.display = 'none';
 
-  function currentWord() { return WORDS[wordIdx]; }
+  function currentWord() { return words[wordIdx]; }
 
   async function ensureMic() {
     if (micReady) return true;
@@ -211,7 +214,7 @@ export function renderGentleOnset() {
 
   function loadWord() {
     wordPrompt.textContent = currentWord();
-    wordNum.textContent = `${wordIdx + 1}/${WORDS.length}`;
+    wordNum.textContent = `${wordIdx + 1}/${words.length}`;
     page.querySelector('#instruction').textContent =
       INSTRUCTIONS[Math.floor(Math.random() * INSTRUCTIONS.length)];
     phaseIcon.textContent = '🌬️';
@@ -220,6 +223,14 @@ export function renderGentleOnset() {
     mic.reset();
     mic.setStatus('Tap “My Turn” when you’re ready 👂');
   }
+
+  // Mix in any of his own words that start on a vowel sound.
+  customWords({ vowelInitial: true }).then(mine => {
+    if (!mine.length) return;
+    words = [...mine, ...GENTLE_WORDS];
+    wordIdx = 0;
+    loadWord();
+  }).catch(() => { /* built-ins are a fine fallback */ });
 
   actionBtn.addEventListener('click', startTake);
 
@@ -232,8 +243,9 @@ export function renderGentleOnset() {
   modelBtn.addEventListener('click', async () => {
     playClick();
     modelBtn.disabled = true;
-    await speakModel(currentWord(), { rate: 0.6 });
+    const source = await playWordModel(currentWord(), { rate: 0.6 });
     modelBtn.disabled = false;
+    if (source === 'own') mic.setStatus('That was your own voice! 🎤', 'good');
   });
 
   page.querySelector('#skip-btn').addEventListener('click', () => {
@@ -244,7 +256,7 @@ export function renderGentleOnset() {
     mic.listening(false);
     actionBtn.disabled = false;
     actionBtn.textContent = '🎤 My Turn';
-    wordIdx = (wordIdx + 1) % WORDS.length;
+    wordIdx = (wordIdx + 1) % words.length;
     loadWord();
   });
 
@@ -253,6 +265,7 @@ export function renderGentleOnset() {
   page.__cleanup = () => {
     tracker?.stop();
     cancelSpeech();
+    stopModel();
     if (micReady) releaseMic();
   };
 

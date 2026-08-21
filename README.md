@@ -13,8 +13,11 @@ A mobile-first Progressive Web App for children (ages 6-10) to build speech flue
   seven-year-old can act on.
 - **Practice sessions** – Check in → three activities → check out, with a progress bar
   and a completion screen. This is what feeds the Parent Dashboard's emotion trend.
-- **Spoken models** – Every target can be heard before it's attempted (`speechSynthesis`
-  at slow rate, plus a soft-attack tone that models an easy onset).
+- **Spoken models, in his own voice** – "🔊 Hear it" plays *his* recording of a word
+  when he has made one, falling back to `speechSynthesis` at slow rate. Plus a
+  soft-attack tone that models an easy onset, which no synthesised voice can.
+- **My Words** – He adds words of his own and records himself saying them well. His
+  words join the practice pools; his recordings become the model.
 - **Confidence Road** – Cumulative record of every day practised. It only ever grows.
 - **3-Min Calm Breath** – Guided breathing animation
 - **Pacing Dots** – Speech rhythm trainer
@@ -78,6 +81,21 @@ therapy. There's a test for exactly this in the suite.
 The Parent Dashboard charts the trend, which is the only number in the app that tracks
 the speech target rather than engagement. `components/voicePowers.js` shows the child
 his own version of the same thing.
+
+## My Words — the child as author
+
+`components/myWords.js` lets him add words and record himself saying them. From then
+on the games play his recording instead of the synthesiser.
+
+Recording a model is not a detour from practice: saying "Apple" with a soft gentle
+start so the app can keep it *is* the exercise. So a model take is analysed like any
+other attempt, counted toward his onset history, and fed back to him. Authoring and
+practising are the same action.
+
+His words join Word Stretch. Only his **vowel-initial** words join Gentle Start —
+gentle-onset work targets the hard glottal attack that happens on vowels, so "Dinosaur"
+would dilute it while "Octopus" belongs there. Words are keyed by a normalised form, so
+one word can only ever have one model.
 
 ## Coin economy
 
@@ -146,6 +164,16 @@ fluency-app/
         ├── stretchySpeech.js
         └── pauseChallenge.js
 ```
+
+## Tests
+
+```bash
+./tests/run.sh          # everything
+./tests/run.sh unit     # pure logic only — fast, no browser
+```
+
+Chrome accepts a WAV as fake microphone input, so the voice detection is tested against
+known audio rather than mocked. See `tests/README.md`.
 
 ## Running Locally
 
