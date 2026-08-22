@@ -3,6 +3,7 @@ import { state, hasVoiceProfile } from '../modules/state.js';
 import { navigate } from '../modules/router.js';
 import { playClick } from '../modules/audio.js';
 import { onsetTargetFrom, ONSET_GOAL_MS } from '../modules/voice.js';
+import { storageReport, isInstalled } from '../modules/storage.js';
 
 const TIPS = [
   'Celebrate every attempt, not just perfect speech. Say "I love how you kept trying!"',
@@ -177,6 +178,12 @@ export function renderParentDashboard() {
           `).join('')}
     </div>
 
+    <!-- Where his progress lives -->
+    <div class="card mt-16" id="storage-card">
+      <div style="font-weight:800;margin-bottom:8px">💾 His progress on this device</div>
+      <p style="font-size:0.85rem;line-height:1.6" id="storage-note">Checking…</p>
+    </div>
+
     <div class="mt-16 text-center">
       <button class="btn btn-ghost" id="avatar-btn">🎨 Customize Avatar</button>
     </div>
@@ -195,6 +202,33 @@ export function renderParentDashboard() {
     `;
     chart.appendChild(col);
   });
+
+  // Everything he has earned lives in this browser on this device and nowhere
+  // else. A parent is the only one who can act on that, so say it plainly here
+  // rather than leaving it as a silent assumption.
+  (async () => {
+    const { persisted, usedMB } = await storageReport();
+    const note = page.querySelector('#storage-note');
+    if (!note) return;
+    const size = usedMB != null && usedMB >= 0.1 ? ` Currently using ${usedMB.toFixed(1)} MB.` : '';
+
+    if (persisted === true) {
+      note.innerHTML =
+        `<strong style="color:var(--mint)">Protected.</strong> His streak, coins and recordings are ` +
+        `marked so this browser won't clear them automatically.${size} They still live only on this ` +
+        `device — they won't appear on another phone or tablet.`;
+    } else if (persisted === false && !isInstalled()) {
+      note.innerHTML =
+        `<strong style="color:var(--sun-warm)">Not protected yet.</strong> Everything he has earned is ` +
+        `saved only in this browser on this device, and browsers can clear that after a stretch without ` +
+        `opening the app — taking his streak and recordings with it. Adding Calm Voice to the home ` +
+        `screen (Share → Add to Home Screen) makes that far less likely.${size}`;
+    } else {
+      note.innerHTML =
+        `Saved in this browser on this device only — not synced anywhere, and not visible on another ` +
+        `phone or tablet.${size}`;
+    }
+  })();
 
   page.querySelector('#exit-btn').addEventListener('click', () => { playClick(); navigate('home'); });
   page.querySelector('#avatar-btn').addEventListener('click', () => { playClick(); navigate('avatar'); });

@@ -345,5 +345,81 @@ async function open(wav = 'gentle.wav') {
   await browser.close();
 }
 
+// ── His data is asked to be non-evictable, and the parent is told either way ──
+{
+  console.log('\nStorage persistence');
+  const browser = await chromium.launch({ args: ['--use-fake-ui-for-media-stream'] });
+  const ctx = await browser.newContext({ viewport: { width: 420, height: 900 } });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('pageerror', e => errors.push('pageerror: ' + e.message));
+  page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+
+  // Watch the real call the app makes at boot, before any of it runs.
+  await page.addInitScript(() => {
+    window.__persistCalls = 0;
+    const s = navigator.storage;
+    if (s?.persist) {
+      const real = s.persist.bind(s);
+      s.persist = () => { window.__persistCalls++; return real(); };
+    }
+  });
+  await page.goto(BASE, { waitUntil: 'networkidle' });
+  await page.waitForSelector('#nav-bar');
+  await page.evaluate(() => import('./js/modules/router.js').then(m => (window.__nav = m.navigate)));
+
+  t('boot asks the browser not to evict his data',
+    (await page.evaluate(() => window.__persistCalls)) >= 1);
+
+  // Already-granted origins must not re-ask; Firefox prompts, and a child
+  // should never see that dialog twice.
+  const noReask = await page.evaluate(async () => {
+    const m = await import('./js/modules/storage.js?v=reask');
+    let calls = 0;
+    const s = navigator.storage;
+    const realPersist = s.persist, realPersisted = s.persisted;
+    s.persisted = async () => true;
+    s.persist   = async () => { calls++; return true; };
+    const r = await m.requestPersistence();
+    s.persist = realPersist; s.persisted = realPersisted;
+    return { r, calls };
+  });
+  t('an already-protected origin is not asked again', noReask.r === true && noReask.calls === 0);
+
+  // Insurance must never be a dependency: a browser without the API, or one
+  // that throws on it, has to leave the app working.
+  const survives = await page.evaluate(async () => {
+    const m = await import('./js/modules/storage.js?v=throws');
+    const s = navigator.storage;
+    const realPersist = s.persist, realPersisted = s.persisted, realEst = s.estimate;
+    s.persisted = async () => { throw new Error('nope'); };
+    s.persist   = async () => { throw new Error('nope'); };
+    s.estimate  = async () => { throw new Error('nope'); };
+    const r = await m.requestPersistence();
+    const rep = await m.storageReport();
+    s.persist = realPersist; s.persisted = realPersisted; s.estimate = realEst;
+    return { r, rep };
+  });
+  t('a browser that refuses or lacks the API degrades quietly',
+    survives.r === null && survives.rep.persisted === null);
+
+  const report = await page.evaluate(() =>
+    import('./js/modules/storage.js').then(m => m.storageReport()));
+  t('it can report how much of his data is stored',
+    typeof report.usedMB === 'number' && report.usedMB >= 0,
+    `${report.usedMB?.toFixed?.(2)} MB, persisted=${report.persisted}`);
+
+  await page.evaluate(() => window.__nav('parent'));
+  await page.waitForFunction(
+    () => !document.querySelector('#storage-note')?.textContent.includes('Checking'),
+    null, { timeout: 4000 });
+  const note = (await page.locator('#storage-note').textContent()).trim();
+  t('the parent dashboard says where his progress lives',
+    /device/i.test(note) && note.length > 40, note.slice(0, 90) + '…');
+
+  t('no console errors', errors.length === 0, errors.join(' | '));
+  await browser.close();
+}
+
 console.log(ok ? '\nBROWSER PASS' : '\nBROWSER FAIL');
 process.exit(ok ? 0 : 1);

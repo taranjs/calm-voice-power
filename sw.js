@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calm-voice-v11';
+const CACHE_NAME = 'calm-voice-v12';
 const ASSETS = [
   './',
   './index.html',
@@ -25,6 +25,7 @@ const ASSETS = [
   './js/components/myWords.js',
   './js/modules/myWords.js',
   './js/modules/content.js',
+  './js/modules/storage.js',
   './js/components/talkTogether.js',
   './js/components/buddy.js',
   './js/components/emotionCheck.js',

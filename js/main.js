@@ -1,5 +1,6 @@
 // js/main.js – App bootstrap
 import { openDB } from './modules/db.js';
+import { requestPersistence } from './modules/storage.js';
 import { loadState, state } from './modules/state.js';
 import { setVoiceProfile } from './modules/voice.js';
 import { route, navigate } from './modules/router.js';
@@ -54,6 +55,13 @@ async function boot() {
 
   // Open DB & load state
   await openDB();
+
+  // Ask the browser not to evict him. His streak, his coins and his recordings
+  // all live in IndexedDB on this device, and by default that is disposable.
+  // Asked after the DB exists, since some browsers weigh how much the origin
+  // actually stores. Non-blocking: if it is refused, everything still works.
+  requestPersistence();
+
   await loadState();
 
   // Detection thresholds come from this child's measured voice, when we have it.
