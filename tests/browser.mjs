@@ -421,5 +421,49 @@ async function open(wav = 'gentle.wav') {
   await browser.close();
 }
 
+// ── The rationale page a therapist gets sent ──
+//
+// It is a plain document, so the only things worth asserting are that it is
+// actually reachable, that it still says the things the app's design depends on,
+// and that the way into it from the app has not silently rotted.
+{
+  console.log('\nWhy-each-feature page');
+  const { browser, page, errors } = await open();
+
+  const res = await page.goto(`${BASE}/features.html`, { waitUntil: 'domcontentloaded' });
+  t('features.html is served', res?.status() === 200, `HTTP ${res?.status()}`);
+
+  const body = await page.evaluate(() => document.body.innerText);
+  t('it states the scope honestly up front', /what this is not/i.test(body));
+  t('it explains why there is no speech recognition',
+    /speech recognition/i.test(body) && /repetitions, prolongations and blocks/i.test(body));
+  t('it says nothing can be earned in silence', /earned in silence/i.test(body));
+  t('it says recordings never leave the device', /never leave the device/i.test(body));
+  t('it lists the known limits rather than only the wins', /known limits/i.test(body));
+
+  // Every route the app has should be accounted for. A feature added later
+  // without a reason written down here is the thing this assertion is for.
+  const missing = ['Teach Me Your Voice','Gentle Start','Stretchy Speech','Pause Power',
+    'My Buddy','Word Stretch','Calm Breath','Pacing Dots','My Words','Talk Together',
+    'Real Challenges','Voice Journal','My Voice Powers','Record Me','Confidence Road',
+    'Parent Dashboard'].filter(name => !body.includes(name));
+  t('every feature in the app has its reason written down', missing.length === 0,
+    missing.length ? `missing: ${missing.join(', ')}` : `${16} features covered`);
+
+  // The parent dashboard is the only way in from inside the app.
+  await page.goto(BASE, { waitUntil: 'networkidle' });
+  await page.waitForSelector('#nav-bar');
+  await page.evaluate(() => import('./js/modules/router.js').then(m => (window.__nav = m.navigate)));
+  await page.evaluate(() => window.__nav('parent'));
+  const link = page.locator('#why-link');
+  const href = await link.getAttribute('href');
+  t('the parent dashboard links to it', href === './features.html');
+  t('it opens outside the app, so practice is never replaced by a wall of text',
+    (await link.getAttribute('target')) === '_blank');
+
+  t('no console errors', errors.length === 0, errors.join(' | '));
+  await browser.close();
+}
+
 console.log(ok ? '\nBROWSER PASS' : '\nBROWSER FAIL');
 process.exit(ok ? 0 : 1);

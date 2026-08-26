@@ -2,6 +2,11 @@
 
 A mobile-first Progressive Web App for children (ages 6-10) to build speech fluency and confidence through guided practice, games, and encouragement.
 
+**[Why each feature exists →](https://taranjs.github.io/calm-voice-power/features.html)** — every
+activity, the reason it is there, what it gives the child or the adult, and what is deliberately never
+scored. Written for speech and language therapists, and readable by anyone. Also linked from the
+Parent Dashboard inside the app.
+
 ## Features
 
 - **Voice-driven practice** – The microphone is the controller. Every scoring activity

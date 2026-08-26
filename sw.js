@@ -1,7 +1,8 @@
-const CACHE_NAME = 'calm-voice-v12';
+const CACHE_NAME = 'calm-voice-v13';
 const ASSETS = [
   './',
   './index.html',
+  './features.html',
   './manifest.json',
   './css/main.css',
   './icons/icon-192.png',

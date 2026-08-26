@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Calm Voice Power — why it works this way</title>
+<meta name="description" content="Every feature in Calm Voice Power, why it exists, and what it gives a child who stammers or the adult helping them." />
+<meta name="theme-color" content="#6EC6F0" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" />
+<style>
+  :root {
+    --sky:#6EC6F0; --sky-light:#C5E9FA; --sky-pale:#EEF9FF;
+    --sun:#FFD166; --sun-warm:#FFA552; --mint:#78D9A4; --mint-light:#C3F0D8;
+    --lavender:#C3B1E1; --lavender-light:#EDE8F7; --coral:#FF8C7A;
+    --ink:#2D3A4A; --ink-soft:#4E5F72; --ink-faint:#7C8B9B;
+    --white:#fff; --rule:#DCEAF4;
+    --wrap:820px;
+  }
+  *,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+  html { -webkit-text-size-adjust:100%; scroll-behavior:smooth; }
+  body {
+    font-family:'Nunito',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    color:var(--ink); background:var(--sky-pale);
+    line-height:1.65; font-size:17px;
+  }
+  .wrap { max-width:var(--wrap); margin:0 auto; padding:0 22px; }
+
+  /* ── Masthead ───────────────────────────── */
+  header.top {
+    background:linear-gradient(160deg,#8FD5F5 0%,var(--sky) 55%,#54B4E4 100%);
+    color:var(--white); padding:56px 0 48px; text-align:center;
+  }
+  header.top .badge {
+    display:inline-block; font-size:0.72rem; font-weight:800; letter-spacing:0.14em;
+    text-transform:uppercase; background:rgba(255,255,255,0.22);
+    padding:7px 16px; border-radius:999px; margin-bottom:20px;
+  }
+  header.top h1 { font-size:clamp(1.9rem,6vw,2.7rem); font-weight:900; line-height:1.15; letter-spacing:-0.01em; }
+  header.top .tag { margin-top:14px; font-size:1.06rem; font-weight:600; opacity:0.95; max-width:34em; margin-left:auto; margin-right:auto; }
+  header.top .facts { margin-top:26px; display:flex; flex-wrap:wrap; gap:9px; justify-content:center; }
+  header.top .facts span {
+    background:rgba(255,255,255,0.9); color:#2A6E92; font-weight:800; font-size:0.8rem;
+    padding:7px 14px; border-radius:999px;
+  }
+
+  /* ── Sections ───────────────────────────── */
+  section { padding:46px 0 6px; }
+  section > .wrap > h2 {
+    font-size:clamp(1.35rem,4vw,1.75rem); font-weight:900; letter-spacing:-0.01em;
+    margin-bottom:8px;
+  }
+  section > .wrap > h2 + .lede { color:var(--ink-soft); font-size:1rem; margin-bottom:26px; max-width:44em; }
+  p + p { margin-top:14px; }
+  a { color:#2A7FA8; font-weight:700; }
+
+  .card {
+    background:var(--white); border-radius:20px; padding:24px 26px;
+    box-shadow:0 3px 16px rgba(110,198,240,0.16); margin-bottom:18px;
+  }
+  .card h3 { font-size:1.1rem; font-weight:900; margin-bottom:10px; }
+  .card p, .card li { color:var(--ink-soft); }
+  .card.plain { box-shadow:none; border:1.5px solid var(--rule); }
+
+  .note {
+    border-left:5px solid var(--sun-warm); background:#FFF8EC;
+    border-radius:0 16px 16px 0; padding:20px 24px; margin:22px 0;
+  }
+  .note strong { color:var(--ink); }
+  .note.calm { border-left-color:var(--mint); background:#F1FBF5; }
+  .note.quiet { border-left-color:var(--lavender); background:#F7F4FC; }
+
+  blockquote {
+    border-left:5px solid var(--sky); padding:6px 0 6px 20px; margin:20px 0;
+    font-size:1.03rem; color:var(--ink); font-weight:600; font-style:italic;
+  }
+
+  /* ── Feature groups ─────────────────────── */
+  .group { margin-bottom:34px; }
+  .group > h3 {
+    font-size:0.78rem; font-weight:900; letter-spacing:0.13em; text-transform:uppercase;
+    color:var(--ink-faint); padding-bottom:9px; border-bottom:2px solid var(--rule);
+    margin-bottom:18px;
+  }
+  .group > .group-why { color:var(--ink-soft); font-size:0.97rem; margin:-8px 0 18px; }
+
+  .feat {
+    background:var(--white); border-radius:18px; padding:20px 22px; margin-bottom:14px;
+    box-shadow:0 2px 12px rgba(110,198,240,0.13);
+  }
+  .feat h4 { font-size:1.05rem; font-weight:900; display:flex; gap:10px; align-items:baseline; }
+  .feat h4 .ico { font-size:1.3rem; line-height:1; }
+  .feat .row { margin-top:11px; font-size:0.95rem; color:var(--ink-soft); }
+  .feat .row b {
+    display:block; font-size:0.7rem; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--ink-faint); margin-bottom:2px; font-weight:900;
+  }
+  .feat .row.gives b { color:var(--mint); }
+  .feat .row.why b { color:var(--sky); }
+  .feat.unscored { border:2px dashed var(--lavender); box-shadow:none; }
+  .pill {
+    display:inline-block; font-size:0.66rem; font-weight:900; letter-spacing:0.08em;
+    text-transform:uppercase; background:var(--lavender-light); color:#6B5A93;
+    padding:4px 10px; border-radius:999px; vertical-align:middle;
+  }
+
+  ul.tick { list-style:none; }
+  ul.tick li { padding-left:26px; position:relative; margin-bottom:9px; }
+  ul.tick li::before { content:'✓'; position:absolute; left:0; color:var(--mint); font-weight:900; }
+  ul.cross li::before { content:'✕'; color:var(--coral); }
+  ol.steps { padding-left:22px; }
+  ol.steps li { margin-bottom:11px; }
+
+  .num-grid { display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); margin:20px 0; }
+  .num { background:var(--white); border-radius:16px; padding:18px; text-align:center; box-shadow:0 2px 12px rgba(110,198,240,0.13); }
+  .num .v { font-size:1.5rem; font-weight:900; color:var(--sky); }
+  .num .k { font-size:0.8rem; color:var(--ink-faint); font-weight:700; margin-top:4px; }
+
+  .cta {
+    background:var(--white); border-radius:22px; padding:28px; text-align:center;
+    box-shadow:0 6px 24px rgba(110,198,240,0.22); margin:10px 0 20px;
+  }
+  .btn {
+    display:inline-block; background:var(--sky); color:var(--white); font-weight:900;
+    padding:15px 30px; border-radius:999px; text-decoration:none; font-size:1rem;
+    box-shadow:0 4px 14px rgba(110,198,240,0.5); margin:6px;
+  }
+  .btn.ghost { background:var(--white); color:#2A7FA8; border:2px solid var(--sky-light); box-shadow:none; }
+
+  footer {
+    margin-top:44px; padding:34px 0 46px; border-top:2px solid var(--rule);
+    color:var(--ink-faint); font-size:0.88rem; text-align:center;
+  }
+  footer a { color:var(--ink-soft); }
+
+  @media (max-width:600px) {
+    body { font-size:16px; }
+    .card, .feat { padding:18px 18px; }
+    header.top { padding:40px 0 36px; }
+  }
+  @media print {
+    body { background:var(--white); font-size:11pt; }
+    header.top { background:none; color:var(--ink); padding:0 0 18px; text-align:left; }
+    header.top .badge, header.top .facts span { background:none; color:var(--ink-faint); padding:0; }
+    .card, .feat, .cta, .num { box-shadow:none; border:1px solid #ccc; }
+    .btn { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="badge">Calm Voice Power</div>
+    <h1>Why each feature exists</h1>
+    <p class="tag">A daily speech-practice companion for children who stammer — and an honest account of the
+      reasoning behind every part of it.</p>
+    <div class="facts">
+      <span>Ages ~5–10</span>
+      <span>Free, no account</span>
+      <span>Works offline</span>
+      <span>Nothing leaves the device</span>
+    </div>
+  </div>
+</header>
+
+<!-- ────────── WHAT THIS IS NOT ────────── -->
+<section>
+  <div class="wrap">
+    <div class="note">
+      <h3 style="margin-bottom:8px">Before anything else: what this is not</h3>
+      <p>It is not an assessment, it does not produce a severity score, and it is not a fluency-shaping
+        programme. It cannot tell you whether a child is stuttering more or less this month.</p>
+      <p>It is <strong>the bit between sessions</strong> — the daily few minutes of practice that a clinician
+        prescribes and a family then has to somehow make happen, sixty times before the next appointment.
+        Everything here is built to make a child <em>want</em> to open it tomorrow, while practising something
+        that is actually worth practising.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── ORIGIN ────────── -->
+<section>
+  <div class="wrap">
+    <h2>How it started, and why that matters</h2>
+    <p class="lede">The design of this app is not a feature list someone brainstormed. It is a list of repairs.</p>
+
+    <p>It was built by a parent for their own six-year-old son, who stammers. The first version had all the
+      obvious ingredients: breathing exercises, a coin economy, an avatar to unlock, a streak counter, a set of
+      practice games. He loved it for about a fortnight.</p>
+    <p>Then he stopped opening it. He never said why — children rarely do. He just drifted off, and the app sat
+      on the home screen going stale.</p>
+    <p>Rather than adding more features, the next step was to work out precisely what had gone wrong. Five
+      things had, and each one is a trap that any practice app can fall into:</p>
+
+    <div class="card plain" style="margin-top:20px">
+      <ul class="tick cross" style="list-style:none">
+        <li><strong>The rewards had nothing to do with speaking.</strong> He worked out he could earn the entire
+          shop by tapping buttons in silence. The app was paying him for compliance, not for using his voice.</li>
+        <li><strong>The streak was punitive.</strong> One missed day wiped out weeks of work. For a child, that
+          converts a source of pride into a source of dread — and the safest way to stop losing a streak is to
+          stop caring about it.</li>
+        <li><strong>Nothing came back from the adults.</strong> He practised into a void. The parent dashboard
+          existed but was fed by data that was never actually recorded.</li>
+        <li><strong>The content ran out.</strong> Around sixty-five fixed items. He had seen all of them.</li>
+        <li><strong>Progress was invisible.</strong> He had genuinely improved, and there was no way for him to
+          hear or see it. The only visible number was coins, which he already knew were meaningless.</li>
+      </ul>
+    </div>
+
+    <p>That diagnosis became the specification. Every feature below traces back to one of those five failures,
+      or to a clinical target worth aiming at once a child is actually turning up.</p>
+
+    <div class="note calm">
+      <p><strong>The one question every feature is judged against:</strong> does this give the child a reason to
+        open the app tomorrow, while practising something that helps? A feature that only satisfies the second
+        half is a feature nobody uses.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── TWO DECISIONS ────────── -->
+<section>
+  <div class="wrap">
+    <h2>Two decisions that shape everything else</h2>
+    <p class="lede">If you only read two things on this page, read these. They explain most of what looks unusual
+      about the app.</p>
+
+    <div class="card">
+      <h3>1. It listens to the voice, not the words</h3>
+      <p>The obvious way to build a speech app is speech recognition. This app deliberately does not use it, and
+        that decision should not be quietly reversed by anyone extending it.</p>
+      <blockquote>Speech recognition scores word accuracy. It treats repetitions, prolongations and blocks as
+        garbage input. Pointing that at a child who stammers builds exactly the wrong feedback loop — the app
+        would systematically tell him he was failing at the precise moments he most needed encouragement.</blockquote>
+      <p>Instead the app analyses the <strong>shape of the sound</strong> using the browser's audio analyser.
+        Three things are measured, none of which care what word was said or whether it came out cleanly:</p>
+      <ul class="tick" style="margin-top:12px">
+        <li><strong>Is the voice on?</strong> Loudness against a threshold calibrated to this child in this room.</li>
+        <li><strong>How long is the voice sustained?</strong> Continuous voicing, for the breath and stretching work.</li>
+        <li><strong>How gently does a word begin?</strong> The time the sound takes to rise from 10% to 90% of its
+          level — a proxy for hard versus easy vocal onset. A hard glottal attack rises in roughly 15&nbsp;ms; an
+          easy onset takes 110&nbsp;ms or more. Crucially this measure is independent of loudness, so a shy child
+          and a loud child are judged on the same thing.</li>
+      </ul>
+      <p style="margin-top:14px">A repetition, a prolongation or a block therefore costs the child nothing. The
+        app has no concept of a mispronounced word, so it can never punish one.</p>
+    </div>
+
+    <div class="card">
+      <h3>2. Nothing can be earned in silence</h3>
+      <p>Every scoring activity is gated on the microphone actually hearing the child. Coins arrive because a
+        sound was made and held, not because a button was pressed. The animation of a word stretching apart is
+        driven by the child's own sustained voicing — it will not move if he watches in silence.</p>
+      <p>This is the single most important repair, and it also protects the parent dashboard: a number that went
+        up means the child spoke.</p>
+      <div class="note quiet" style="margin-bottom:0">
+        <p><strong>The corollary — the microphone is never a wall.</strong> If mic access is refused or
+          unavailable, the app still opens, and the features that do not need a mic still work fully. A child
+          should never be locked out of his own practice app by a permission dialog.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── FEATURES ────────── -->
+<section>
+  <div class="wrap">
+    <h2>The features, and the reason for each</h2>
+    <p class="lede">Grouped by the job they do rather than by where they appear in the menus.</p>
+
+    <!-- Setup -->
+    <div class="group">
+      <h3>Getting the app to hear this particular child</h3>
+      <p class="group-why">A fixed loudness threshold is the quiet failure that kills voice-driven apps. Set it
+        too high and a softly spoken child is ignored, no matter how hard he tries. Set it too low and room noise
+        earns his rewards for him.</p>
+
+      <div class="feat">
+        <h4><span class="ico">🎤</span> Teach Me Your Voice</h4>
+        <div class="row why"><b>Why</b>The app needs to know what <em>this</em> child sounds like, and how noisy
+          his room is, before it can judge anything. Asking a parent to tune a sensitivity slider was never going
+          to happen.</div>
+        <div class="row"><b>What it is</b>Four short steps played as a game rather than presented as settings: a
+          mouse voice, a normal voice, a lion roar, and one gently started word. The app measures the room's noise
+          floor and his own quiet and loud levels, then sets its detection threshold between the room and his
+          softest voice.</div>
+        <div class="row gives"><b>What it gives</b>Detection that works for a quiet child. In testing this moved
+          one child from a marginal margin to a comfortable one — the difference between an app that responds and
+          an app that appears broken. It can be re-run at any time from the parent dashboard, which matters as a
+          child grows or moves to a noisier room.</div>
+      </div>
+    </div>
+
+    <!-- Games -->
+    <div class="group">
+      <h3>Games that each target one specific mechanism</h3>
+      <p class="group-why">Four games, four different targets. None of them scores fluency. Each gives immediate,
+        visible feedback on a physical behaviour a child can consciously change — which is the only kind of target
+        worth setting for a six-year-old.</p>
+
+      <div class="feat">
+        <h4><span class="ico">🌱</span> Gentle Start</h4>
+        <div class="row why"><b>Why</b>Easy vocal onset — beginning a word softly instead of forcing it out from a
+          closed larynx — is one of the few techniques a young child can genuinely feel themselves doing.</div>
+        <div class="row"><b>What it is</b>A word appears; the child says it. The app measures how gradually his
+          voice arrived and shows it back to him. Because a synthesised voice cannot demonstrate a soft onset, the
+          app plays a purpose-built tone that swells gently, so he has something to imitate.</div>
+        <div class="row gives"><b>What it gives</b>The one number in the app that tracks a real speech target. The
+          goal ratchets upward from his own recent measurements rather than sitting at a fixed ideal, so it is
+          always just above where he actually is.</div>
+      </div>
+
+      <div class="feat">
+        <h4><span class="ico">🌈</span> Stretchy Speech</h4>
+        <div class="row why"><b>Why</b>Prolonged, continuous voicing is incompatible with a block. Practising the
+          sensation of a sound that keeps going builds the alternative to pushing.</div>
+        <div class="row"><b>What it is</b>Hold a sound; the app tracks how long the voice stays continuously on,
+          tolerating brief natural gaps rather than snapping off at the first flicker.</div>
+        <div class="row gives"><b>A personal best he can beat.</b> Progress here is measured in tenths of a second
+          and is entirely his own — nobody else's score is on the screen.</div>
+      </div>
+
+      <div class="feat">
+        <h4><span class="ico">⏸️</span> Pause Power</h4>
+        <div class="row why"><b>Why</b>Time pressure is the enemy. A child who believes a gap in his speech is a
+          failure will rush, and rushing makes stammering worse. So the app makes <em>deliberate silence</em> the
+          thing that wins.</div>
+        <div class="row"><b>What it is</b>Speak, then stop. The app times the real silence between two real
+          stretches of speech and rewards the length of the pause.</div>
+        <div class="row gives"><b>Reframing.</b> A pause stops being something to be ashamed of and becomes a
+          superpower with a high score attached.</div>
+      </div>
+
+      <div class="feat unscored">
+        <h4><span class="ico">🦕</span> My Buddy <span class="pill">Nothing scored</span></h4>
+        <div class="row why"><b>Why</b>All the work above is about speaking more easily. None of it addresses how
+          a child <em>feels</em> about getting stuck — and avoidance and shame do more long-term damage than the
+          disfluency itself. This is the acceptance and desensitisation side, which almost no children's app
+          attempts.</div>
+        <div class="row"><b>What it is</b>A named creature who stammers, is entirely fine about it, and needs the
+          child's help. It gets stuck on a word and he chooses how to help. All the options are valid — there is
+          no wrong answer and no score — and one of them is deliberate, playful bouncing on a sound
+          ("b-b-bouncing"), which is voluntary stuttering introduced as a game.</div>
+        <div class="row gives"><b>The lines the buddy says are the actual payload.</b> "I got a bit stuck… and I
+          said it anyway." "Thanks for waiting for me — people who wait are the best." The second one quietly
+          teaches a child what he is allowed to ask of a listener. Being the helper rather than the helped is the
+          point: it is a rehearsal of a stance towards his own speech.</div>
+      </div>
+    </div>
+
+    <!-- In the moment -->
+    <div class="group">
+      <h3>Tools for the moment itself</h3>
+      <p class="group-why">Practice is not much use if none of it is reachable when a word is actually stuck.</p>
+
+      <div class="feat">
+        <h4><span class="ico">✨</span> Word Stretch</h4>
+        <div class="row why"><b>Why</b>A direct rehearsal of what to do with a word that will not come: breathe,
+          slow down, stretch it out.</div>
+        <div class="row"><b>What it is</b>The letters of the word physically pull apart as the child sustains the
+          sound. His voice is doing the animating — this was once a button that animated itself and paid out coins
+          for being watched, which is exactly the bug the whole app was rebuilt to remove.</div>
+        <div class="row gives"><b>Cause and effect he can see.</b> Longer voicing, wider letters. No interpretation
+          needed.</div>
+      </div>
+
+      <div class="feat">
+        <h4><span class="ico">🌬️</span> Calm Breath</h4>
+        <div class="row why"><b>Why</b>Tension is upstream of everything else. A three-minute guided breath before
+          practice changes the body a child is about to speak with, and gives him something to do when he feels
+          the tightening start.</div>
+        <div class="row"><b>What it is</b>An animated breathing guide, roughly three minutes, no microphone
+          required.</div>
+        <div class="row gives"><b>A portable skill.</b> It is also the one activity that works when a child is too
+          upset to want to talk at all.</div>
+      </div>
+
+      <div class="feat">
+        <h4><span class="ico">🎵</span> Pacing Dots</h4>
+        <div class="row why"><b>Why</b>Syllable-timed and rhythmic speech is long-established practice material.
+          The catch is that it is trivially fakeable — a child can tap along in silence.</div>
+        <div class="row"><b>What it is</b>A row of dots lights in rhythm; a beat only counts if he actually voiced
+          it.</div>
+        <div class="row gives"><b>Rhythm and slowed rate</b>, with no way to earn it by tapping.</div>
+      </div>
+    </div>
+
+    <!-- His own material -->
+    <div class="group">
+      <h3>His own words, in his own voice</h3>
+      <p class="group-why">Autonomy is one of the three things that make any activity intrinsically motivating —
+        the others being competence and connection. An app that only ever hands a child someone else's word list
+        is missing the cheapest motivation available.</p>
+
+      <div class="feat">
+        <h4><span class="ico">✍️</span> My Words</h4>
+        <div class="row why"><b>Why</b>The words that matter are the ones that trip him up: his own name, his
+          teacher's name, the thing he has to say at the school gate. A generic list cannot know them, and a
+          clinician's list is only updated fortnightly.</div>
+        <div class="row"><b>What it is</b>He adds his own difficult words, and records himself saying each one
+          well. Those words then flow into the practice games, and <strong>his own recording becomes the model the
+          app plays back</strong> — falling back to a synthesised voice only when he has not recorded one.</div>
+        <div class="row gives"><b>Two things at once.</b> Practice on material that actually matters, and the
+          experience of hearing his own voice held up as the good example. He is not copying an adult; he is
+          copying himself on a good day.</div>
+      </div>
+
+      <div class="feat">
+        <h4><span class="ico">🎲</span> Content that does not run out</h4>
+        <div class="row why"><b>Why</b>The original app had a fixed set of items and he exhausted it. Nothing
+          erodes a daily habit faster than a child recognising every screen.</div>
+        <div class="row"><b>What it is</b>Words and prompts generated from word banks, seeded by the date: the same
+          material all day so he can come back to a word he wants another go at, different material tomorrow. The
+          clinical constraints live in the banks rather than being left to chance — the gentle-onset words all
+          begin with vowels, and the words used for stretching are built on sounds that can physically be
+          prolonged.</div>
+        <div class="row gives"><b>An app that stays new</b> without an adult loading content into it.</div>
+      </div>
+    </div>
+
+    <!-- Other people -->
+    <div class="group">
+      <h3>Other people — where transfer actually happens</h3>
+      <p class="group-why">Fluency in a game and fluency in a conversation are different skills. There is normally
+        a chasm between practising words alone and talking to a real human, and the app used to have nothing in
+        it.</p>
+
+      <div class="feat unscored">
+        <h4><span class="ico">💛</span> Talk Together <span class="pill">Turns only, never fluency</span></h4>
+        <div class="row why"><b>Why</b>Conversation is where communicative pressure does the most damage, and it is
+          also the only place practice becomes useful. It needs a rung on the ladder of its own.</div>
+        <div class="row"><b>What it is</b>Structured turn-taking with a real person in the room — a parent, sibling,
+          grandparent or clinician. The app supplies the prompts and keeps the turns moving.</div>
+        <div class="row gives"><b>A scaffolded conversation.</b> It counts turns taken and nothing else. No score
+          for how the words came out, deliberately: the aim is that speaking with someone stays entirely
+          consequence-free. It also works completely with the microphone denied, because the microphone is not the
+          point here.</div>
+      </div>
+
+      <div class="feat">
+        <h4><span class="ico">🌍</span> Real Challenges</h4>
+        <div class="row why"><b>Why</b>Avoidance is the habit that hardens over a lifetime. Small, chosen, real
+          acts of speaking are how it is loosened, and they belong outside the app.</div>
+        <div class="row"><b>What it is</b>Daily suggestions of brave everyday tries — ordering his own drink,
+          answering the phone, asking a shopkeeper a question — which he marks off himself.</div>
+        <div class="row gives"><b>Practice that leaves the screen.</b> Credit is for the attempt, never for how it
+          sounded.</div>
+      </div>
+    </div>
+
+    <!-- Progress -->
+    <div class="group">
+      <h3>Making progress visible to the child</h3>
+      <p class="group-why">He had improved and could not tell. A child who cannot perceive his own progress has no
+        evidence that any of this is worth doing, and coins are not evidence — he knows they are made up.</p>
+
+      <div class="feat">
+        <h4><span class="ico">🎧</span> Voice Journal — Then vs Now</h4>
+        <div class="row why"><b>Why</b>The most convincing proof available is the sound of his own voice a month
+          ago.</div>
+        <div class="row"><b>What it is</b>Recordings are kept and grouped by prompt, so the same sentence from his
+          earliest attempt and his latest sit side by side to be played back to back.</div>
+        <div class="row gives"><b>Audible progress</b> — for him, and for the adult who needs to know whether any
+          of this is working. This is also the part families most want to keep, which is why the app takes storage
+          seriously (see below).</div>
+      </div>
+
+      <div class="feat">
+        <h4><span class="ico">⚡</span> My Voice Powers</h4>
+        <div class="row why"><b>Why</b>Raw milliseconds mean nothing to a child. But levelling up a named power
+          means a great deal.</div>
+        <div class="row"><b>What it is</b>Four powers — Gentle Start, Long Sound, Pause Power, Steady Beat — each
+          levelling up from his own real measurements, described in words he can act on rather than numbers.</div>
+        <div class="row gives"><b>Legible competence.</b> The growth he sees here is genuinely his own performance,
+          not a participation trophy. That distinction is what makes it feel worth something.</div>
+      </div>
+
+      <div class="feat">
+        <h4><span class="ico">🎙️</span> Record Me!</h4>
+        <div class="row why"><b>Why</b>Many children who stammer have never simply listened to themselves in a
+          setting where nothing is at stake.</div>
+        <div class="row"><b>What it is</b>Record a prompt, play it back, keep it. No analysis, no score.</div>
+        <div class="row gives"><b>Self-monitoring without judgement</b>, and the raw material for Then vs Now.</div>
+      </div>
+    </div>
+
+    <!-- Coming back -->
+    <div class="group">
+      <h3>Coming back tomorrow</h3>
+      <p class="group-why">The hardest problem in the whole app, and where the original version failed worst.</p>
+
+      <div class="feat">
+        <h4><span class="ico">🛣️</span> Confidence Road</h4>
+        <div class="row why"><b>Why</b>The original streak punished a missed day by destroying the record, which
+          made the streak frightening. Illness, holidays and bad days are not lapses in commitment; a design that
+          treats them as failures teaches a child that consistency is impossible.</div>
+        <div class="row"><b>What it is</b>A cumulative road of every day ever practised — <strong>it only ever
+          grows.</strong> Alongside it, a current streak that is protected by rest credits: practise consistently
+          and the app banks days off, so a missed day spends a credit before it breaks anything.</div>
+        <div class="row gives"><b>A record that is safe to care about.</b> A child can come back after a fortnight
+          away and find his history intact, which is exactly the moment most apps lose someone for good.</div>
+      </div>
+
+      <div class="feat">
+        <h4><span class="ico">😄</span> Emotion check-in and check-out</h4>
+        <div class="row why"><b>Why</b>How a child feels about talking is the outcome that matters most and is the
+          least measurable. Asking either side of practice makes it visible — and asking at all tells him his
+          feelings are part of this.</div>
+        <div class="row"><b>What it is</b>A five-face scale before practice and again afterwards.</div>
+        <div class="row gives"><b>A trend line the adults can see</b>, and a moment of being asked. In testing,
+          practice reliably ended with a better face than it started with; that pattern is worth showing a parent
+          who is wondering whether the effort is worth it.</div>
+      </div>
+
+      <div class="feat">
+        <h4><span class="ico">🪙</span> Coins, Rewards Shop and Avatar</h4>
+        <div class="row why"><b>Why</b>Extrinsic reward gets a child through the door in week one, and it is the
+          weakest of the motivators here — offered too freely it actively erodes the interest it was meant to
+          create. So it is present, capped, and never the main event.</div>
+        <div class="row"><b>What it is</b>Coins for voiced practice, spent on unlockable avatars and
+          customisation. Earnings <strong>taper per activity per day</strong>, so grinding one favourite game
+          stops paying and breadth is rewarded. A first-practice-of-the-day bonus does the rest of the work.</div>
+        <div class="row gives"><b>A gentle pull towards turning up</b>, without teaching him that speaking is
+          something one does for payment. Several of the newest features pay nothing at all, on purpose.</div>
+      </div>
+    </div>
+
+    <!-- For adults -->
+    <div class="group">
+      <h3>For the adult in the room</h3>
+      <p class="group-why">A parent or clinician needs three things: is he actually using it, is anything moving,
+        and what should I do differently.</p>
+
+      <div class="feat">
+        <h4><span class="ico">👨‍👩‍👧</span> Parent Dashboard</h4>
+        <div class="row why"><b>Why</b>The original dashboard was fed by data that was never recorded, so it
+          showed a confident and completely empty picture. A dashboard that cannot be trusted is worse than
+          none.</div>
+        <div class="row"><b>What it is</b>Activities completed per day for the past week; the before-and-after
+          emotion trend; a gentle-starts trend showing his median onset rise time when he began versus recently,
+          against his current goal; recent sessions; a rotating coaching tip; and a plain statement of where his
+          data is stored and whether it is protected.</div>
+        <div class="row gives"><b>An honest picture, including when it is flat.</b> The gentle-starts panel says
+          "holding steady for now — this one moves slowly, and that is normal" rather than inventing progress.
+          Onset change is a slow measure and a dashboard that flattered it would be useless to a clinician.</div>
+      </div>
+
+      <div class="feat">
+        <h4><span class="ico">💡</span> Coaching tips</h4>
+        <div class="row why"><b>Why</b>Most of the variance in a child's day sits with how the adults around him
+          respond, and much of the standard advice runs against a parent's instincts — not finishing his
+          sentences, not looking away, not asking him to slow down or take a breath.</div>
+        <div class="row"><b>What it is</b>One short, actionable prompt each visit, in the place a parent already
+          looks.</div>
+        <div class="row gives"><b>Reinforcement of the listener's role</b>, at the moment they are already thinking
+          about their child's speech.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── NOT MEASURED ────────── -->
+<section>
+  <div class="wrap">
+    <h2>What is deliberately not measured</h2>
+    <p class="lede">Some of the omissions are the design.</p>
+    <div class="card plain">
+      <ul class="tick cross" style="list-style:none">
+        <li><strong>Word accuracy or intelligibility.</strong> No speech recognition anywhere, for the reason set
+          out above.</li>
+        <li><strong>Fluency, in any form.</strong> Nothing in the app counts disfluencies, and nothing scores how
+          smoothly a word came out. Blocks and repetitions cost nothing.</li>
+        <li><strong>Conversation quality.</strong> Talk Together counts turns and stops there.</li>
+        <li><strong>Anything at all in My Buddy.</strong> The acceptance work is unscored on purpose — attaching a
+          reward to it would turn a stance into a performance.</li>
+        <li><strong>Comparison with other children.</strong> There is no leaderboard, no age norm, no percentile.
+          Every measure is against his own past.</li>
+      </ul>
+    </div>
+    <div class="note calm">
+      <p><strong>The tone rules follow from this.</strong> No red, no buzzers, no failure sounds anywhere in the
+        app. Getting stuck is drawn as ordinary and survivable rather than as an error state. Praise is for effort
+        and for turning up — "I noticed you kept going" — and never for fluency.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── DATA ────────── -->
+<section>
+  <div class="wrap">
+    <h2>Where the data lives</h2>
+    <p class="lede">Short version: on the device, and nowhere else.</p>
+    <div class="card">
+      <ul class="tick">
+        <li><strong>No account, no sign-up, no server.</strong> There is nothing to log in to.</li>
+        <li><strong>Recordings never leave the device.</strong> A child's voice is about as sensitive as data gets.
+          The recordings are stored in the browser's own database on that one device and are never uploaded,
+          transmitted or analysed elsewhere.</li>
+        <li><strong>No analytics, no tracking, no third-party scripts.</strong></li>
+        <li><strong>Works fully offline</strong> once loaded, which is also why none of this needs a connection.</li>
+      </ul>
+      <div class="note" style="margin-bottom:0">
+        <p><strong>The honest caveat.</strong> Because everything is local, everything is also only on that one
+          device. Browsers can clear this kind of storage after a stretch without opening the app — taking the
+          streak and the recordings with it. The app asks the browser for permanent storage at startup, and adding
+          it to the home screen makes eviction far less likely; the parent dashboard reports which state you are
+          actually in. But there is currently no sync and no cloud backup, so a lost or wiped device means lost
+          recordings. Worth knowing before a family invests months of Then-vs-Now in it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── FOR THERAPISTS ────────── -->
+<section>
+  <div class="wrap">
+    <h2>For speech and language therapists</h2>
+    <p class="lede">If you are considering pointing a family at this, here is what to look at and what to be wary
+      of.</p>
+
+    <div class="card">
+      <h3>A ten-minute tour</h3>
+      <ol class="steps">
+        <li>Open the app and run <strong>Teach Me Your Voice</strong> first. Nothing else behaves properly until
+          it has calibrated, and it is the piece most likely to need re-running in a noisy clinic room.</li>
+        <li>Play <strong>Gentle Start</strong> three or four times, once with a hard attack and once with a
+          deliberately eased onset, and watch what it reports. This is the app's only real speech measure and you
+          should satisfy yourself it responds sensibly.</li>
+        <li>Open <strong>My Buddy</strong>. It is the feature that will tell you fastest whether the app's
+          attitude to stammering matches yours.</li>
+        <li>Open <strong>Talk Together</strong> and take a couple of turns with the child or parent. This is the
+          part designed to be used <em>with</em> someone, and the part most likely to be skipped if nobody points
+          it out.</li>
+        <li>Finish in the <strong>Parent Dashboard</strong> so you know what the family will see, and can tell them
+          which parts to ignore.</li>
+      </ol>
+    </div>
+
+    <div class="card">
+      <h3>How to read the one clinical number</h3>
+      <p>The gentle-starts panel reports <strong>median onset rise time in milliseconds</strong> — how long the
+        voice takes to climb from 10% to 90% of its level at the start of a word.</p>
+      <div class="num-grid">
+        <div class="num"><div class="v">~15 ms</div><div class="k">Hard glottal attack</div></div>
+        <div class="num"><div class="v">110 ms+</div><div class="k">Eased onset target</div></div>
+        <div class="num"><div class="v">Own median</div><div class="k">What the goal tracks</div></div>
+      </div>
+      <p>It is computed from a rolling window of the child's own samples, and the goal is set just above his recent
+        median rather than at a fixed ideal. Treat it as a practice-behaviour measure, not an outcome measure: it
+        tells you whether he is rehearsing easy onset, not whether his stammering has changed.</p>
+    </div>
+
+    <div class="card">
+      <h3>Known limits, stated plainly</h3>
+      <ul class="tick cross" style="list-style:none">
+        <li>A single amplitude threshold cannot separate a child's voice from a sibling shouting nearby. In a busy
+          room, credit can be earned by the room.</li>
+        <li>Onset rise time is a proxy. It is a good one, it is loudness-invariant, and it is not a laryngoscope.</li>
+        <li>The content banks are English and assume a British-English register in the child-facing copy.</li>
+        <li>The reading load is pitched at roughly ages 5–10 and the visual register is young; an older child may
+          find it babyish.</li>
+        <li>No sync, no multi-device, no clinician view, no data export yet. What you see on the child's device is
+          all there is.</li>
+        <li>It has been shaped around one child in depth rather than trialled across a caseload. That is a real
+          limitation and the main reason clinician feedback is worth more than another feature.</li>
+      </ul>
+    </div>
+
+    <div class="note quiet">
+      <p><strong>What would help most.</strong> Whether the targets are the right ones, whether anything here
+        would work against what you do in session, and whether the buddy's framing of getting stuck sits right
+        with you. Those are the judgements this app cannot make for itself.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ────────── CTA ────────── -->
+<section>
+  <div class="wrap">
+    <div class="cta">
+      <h3 style="font-size:1.2rem;margin-bottom:8px">Try it</h3>
+      <p style="color:var(--ink-soft);margin-bottom:16px">Free, no account, works on a phone or tablet. Add it to
+        the home screen for the best experience.</p>
+      <a class="btn" href="./">Open Calm Voice Power</a>
+      <a class="btn ghost" href="https://github.com/taranjs/calm-voice-power">Source code</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Calm Voice Power — a practice companion, not a diagnostic tool, and not a substitute for speech and
+      language therapy.</p>
+    <p style="margin-top:8px"><a href="./">Open the app</a> · <a href="https://github.com/taranjs/calm-voice-power">GitHub</a></p>
+  </div>
+</footer>
+
+</body>
+</html>

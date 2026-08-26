@@ -178,6 +178,22 @@ export function renderParentDashboard() {
           `).join('')}
     </div>
 
+    <!-- Why the app is built the way it is. Aimed at the adult in the room –
+         a therapist deciding whether to recommend it, or a parent wondering why
+         a game rewards pausing. Opens outside the app so his practice session
+         is never replaced by a wall of text. -->
+    <div class="card mt-16">
+      <div style="font-weight:800;margin-bottom:8px">📖 Why each feature exists</div>
+      <p style="font-size:0.85rem;line-height:1.6;color:var(--ink-soft)">
+        Every activity in the app, the reason it is here, and what it is meant to give him –
+        including what is deliberately never scored. Written to be shared with a speech therapist.
+      </p>
+      <div class="action-row mt-16">
+        <a class="btn btn-ghost" id="why-link" href="./features.html" target="_blank" rel="noopener"
+           style="font-size:0.85rem;text-decoration:none">Read it →</a>
+      </div>
+    </div>
+
     <!-- Where his progress lives -->
     <div class="card mt-16" id="storage-card">
       <div style="font-weight:800;margin-bottom:8px">💾 His progress on this device</div>
@@ -231,6 +247,7 @@ export function renderParentDashboard() {
   })();
 
   page.querySelector('#exit-btn').addEventListener('click', () => { playClick(); navigate('home'); });
+  page.querySelector('#why-link').addEventListener('click', () => playClick());
   page.querySelector('#avatar-btn').addEventListener('click', () => { playClick(); navigate('avatar'); });
   page.querySelector('#recalibrate-btn').addEventListener('click', () => { playClick(); navigate('voice-setup'); });
 
