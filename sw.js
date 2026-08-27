@@ -1,7 +1,10 @@
-const CACHE_NAME = 'calm-voice-v13';
+const CACHE_NAME = 'calm-voice-v14';
 const ASSETS = [
   './',
   './index.html',
+  // The guided tour. Precached so the ❓ link in the parent dashboard still opens
+  // something useful offline; its screenshots in shots/ are deliberately left out,
+  // because 2MB of images a child never sees does not belong in a child's cache.
   './features.html',
   './manifest.json',
   './css/main.css',

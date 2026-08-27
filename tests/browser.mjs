@@ -421,43 +421,110 @@ async function open(wav = 'gentle.wav') {
   await browser.close();
 }
 
-// ── The rationale page a therapist gets sent ──
+// ── The guided tour a therapist gets sent ──
 //
-// It is a plain document, so the only things worth asserting are that it is
-// actually reachable, that it still says the things the app's design depends on,
-// and that the way into it from the app has not silently rotted.
+// It is a static document, so the assertions are: it is reachable, every screen
+// it shows exists, the reasoning the app's design depends on is still written
+// down, and the walk-through actually walks — without moving the page underneath
+// the reader, which was the whole point of using a dialog.
 {
-  console.log('\nWhy-each-feature page');
+  console.log('\nGuided tour page');
   const { browser, page, errors } = await open();
 
-  const res = await page.goto(`${BASE}/features.html`, { waitUntil: 'domcontentloaded' });
+  const res = await page.goto(`${BASE}/features.html`, { waitUntil: 'load' });
   t('features.html is served', res?.status() === 200, `HTTP ${res?.status()}`);
 
-  const body = await page.evaluate(() => document.body.innerText);
-  t('it states the scope honestly up front', /what this is not/i.test(body));
+  // textContent, not innerText: each tile's reasoning is hidden until opened.
+  const text = await page.evaluate(() => document.body.textContent);
+  t('it states the scope honestly up front', /what it is not/i.test(text));
   t('it explains why there is no speech recognition',
-    /speech recognition/i.test(body) && /repetitions, prolongations and blocks/i.test(body));
-  t('it says nothing can be earned in silence', /earned in silence/i.test(body));
-  t('it says recordings never leave the device', /never leave the device/i.test(body));
-  t('it lists the known limits rather than only the wins', /known limits/i.test(body));
+    /speech recognition/i.test(text) && /repetitions, prolongations and blocks/i.test(text));
+  t('it says nothing can be earned in silence', /earned in silence/i.test(text));
+  t('it says recordings never leave the device', /never leave the device/i.test(text));
+  t('it lists the known limits rather than only the wins', /known limits/i.test(text));
 
-  // Every route the app has should be accounted for. A feature added later
-  // without a reason written down here is the thing this assertion is for.
+  // A feature added to the app later without a reason written down here is the
+  // thing this assertion exists to catch.
   const missing = ['Teach Me Your Voice','Gentle Start','Stretchy Speech','Pause Power',
     'My Buddy','Word Stretch','Calm Breath','Pacing Dots','My Words','Talk Together',
     'Real Challenges','Voice Journal','My Voice Powers','Record Me','Confidence Road',
-    'Parent Dashboard'].filter(name => !body.includes(name));
+    'Parent Dashboard'].filter(name => !text.includes(name));
   t('every feature in the app has its reason written down', missing.length === 0,
-    missing.length ? `missing: ${missing.join(', ')}` : `${16} features covered`);
+    missing.length ? `missing: ${missing.join(', ')}` : '16 checked');
 
-  // The parent dashboard is the only way in from inside the app.
+  // Every tour entry needs all three rows; a tile with a screenshot and no
+  // reasoning is exactly the brochure this page is not supposed to be.
+  const tour = await page.evaluate(() => {
+    const tiles = [...document.querySelectorAll('.tile')].filter(el => el.querySelector('.detail'));
+    return {
+      count: tiles.length,
+      complete: tiles.filter(el => el.querySelectorAll('.detail .row').length === 3).length,
+      shots: tiles.filter(el => el.querySelector('.tile-open').dataset.shot).length,
+    };
+  });
+  t('the tour has its full set of entries', tour.count === 20, `${tour.count} tiles`);
+  t('every entry says why it is here, what it is and what it gives',
+    tour.complete === tour.count, `${tour.complete}/${tour.count}`);
+  t('all but the under-the-hood entry have a screenshot',
+    tour.shots === tour.count - 1, `${tour.shots}/${tour.count}`);
+
+  // A wrong path would be invisible in a text assertion. The screenshots are
+  // lazy-loaded, so walk the page first — an image that has never entered the
+  // viewport is legitimately incomplete and proves nothing either way.
+  await page.evaluate(async () => {
+    for (let y = 0; y < document.body.scrollHeight; y += 700) {
+      window.scrollTo(0, y);
+      await new Promise(r => setTimeout(r, 60));
+    }
+  });
+  await page.waitForFunction(
+    () => [...document.images].every(i => !i.getAttribute('src') || i.complete),
+    null, { timeout: 8000 }).catch(() => {});
+  const broken = await page.evaluate(() =>
+    [...document.images]
+      .filter(i => i.getAttribute('src') && i.complete && i.naturalWidth === 0)
+      .map(i => i.getAttribute('src')));
+  t('no broken screenshots', broken.length === 0, broken.join(', ') || '23 loaded');
+
+  // The walk-through. Opening an entry must not scroll the page — that is the
+  // whole reason this is a dialog and not an inline expander. Settle the tile
+  // into view first, or Playwright's own scroll-into-view is what gets measured.
+  const buddyTile = page.locator('.tile-open[data-shot*="buddy"]');
+  await buddyTile.scrollIntoViewIfNeeded();
+  await page.waitForTimeout(200);
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+  await buddyTile.click();
+  await page.waitForFunction(() => document.getElementById('lb')?.open === true, null, { timeout: 3000 });
+  t('tapping a screen opens its reasoning',
+    /voluntary stuttering|bouncing/i.test(await page.locator('#lb-rows').textContent()));
+  t('and does not move the page underneath the reader',
+    (await page.evaluate(() => window.scrollY)) === scrollBefore);
+
+  const firstTitle = (await page.locator('#lb-title').textContent()).trim();
+  const firstOf    = (await page.locator('#lb-of').textContent()).trim();
+  await page.click('#lb-next');
+  const secondTitle = (await page.locator('#lb-title').textContent()).trim();
+  t('the arrows walk through the tour',
+    secondTitle !== firstTitle && /^\d+ of 20$/.test(firstOf), `${firstOf} → ${firstTitle} then ${secondTitle}`);
+
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => document.getElementById('lb')?.open === false, null, { timeout: 3000 });
+  t('escape closes it', true);
+
+  // The way in from inside the app: an icon in the dashboard header, not a card
+  // a therapist has to scroll past a fortnight of mood data to reach.
   await page.goto(BASE, { waitUntil: 'networkidle' });
   await page.waitForSelector('#nav-bar');
   await page.evaluate(() => import('./js/modules/router.js').then(m => (window.__nav = m.navigate)));
   await page.evaluate(() => window.__nav('parent'));
   const link = page.locator('#why-link');
-  const href = await link.getAttribute('href');
-  t('the parent dashboard links to it', href === './features.html');
+  t('the parent dashboard header links to it',
+    (await link.getAttribute('href')) === './features.html');
+  t('it sits in the header, above the fold',
+    await page.evaluate(() => {
+      const a = document.querySelector('#why-link');
+      return !!a && a.closest('.page-header') !== null && a.getBoundingClientRect().top < 200;
+    }));
   t('it opens outside the app, so practice is never replaced by a wall of text',
     (await link.getAttribute('target')) === '_blank');
 

@@ -72,7 +72,17 @@ export function renderParentDashboard() {
         <h2>Parent Dashboard 👨‍👩‍👧</h2>
         <p class="subtitle">Your child's progress</p>
       </div>
-      <button class="btn btn-ghost" id="exit-btn" style="padding:10px 16px;font-size:0.85rem">✕</button>
+      <div class="action-row" style="gap:8px">
+        <!-- Why the app is built the way it is. Sits up here rather than in a
+             card at the bottom because a therapist being shown the app should
+             not have to scroll past a fortnight of a child's mood data to find
+             it. Opens outside the app, so a stray tap never replaces his
+             practice session with an essay. -->
+        <a class="btn btn-ghost" id="why-link" href="./features.html" target="_blank" rel="noopener"
+           title="Why each feature exists" aria-label="Why each feature exists"
+           style="padding:10px 16px;font-size:1rem;text-decoration:none;line-height:1">❓</a>
+        <button class="btn btn-ghost" id="exit-btn" style="padding:10px 16px;font-size:0.85rem">✕</button>
+      </div>
     </div>
 
     <!-- Stats -->
@@ -176,22 +186,6 @@ export function renderParentDashboard() {
               </div>
             </div>
           `).join('')}
-    </div>
-
-    <!-- Why the app is built the way it is. Aimed at the adult in the room –
-         a therapist deciding whether to recommend it, or a parent wondering why
-         a game rewards pausing. Opens outside the app so his practice session
-         is never replaced by a wall of text. -->
-    <div class="card mt-16">
-      <div style="font-weight:800;margin-bottom:8px">📖 Why each feature exists</div>
-      <p style="font-size:0.85rem;line-height:1.6;color:var(--ink-soft)">
-        Every activity in the app, the reason it is here, and what it is meant to give him –
-        including what is deliberately never scored. Written to be shared with a speech therapist.
-      </p>
-      <div class="action-row mt-16">
-        <a class="btn btn-ghost" id="why-link" href="./features.html" target="_blank" rel="noopener"
-           style="font-size:0.85rem;text-decoration:none">Read it →</a>
-      </div>
     </div>
 
     <!-- Where his progress lives -->

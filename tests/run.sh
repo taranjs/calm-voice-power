@@ -35,7 +35,13 @@ done
 for f in $(find js css icons -type f \( -name '*.js' -o -name '*.css' -o -name '*.png' \) | sort); do
   grep -q "'\./$f'" sw.js || { echo "  FAIL not cached by sw.js: $f"; bad=1; }
 done
-[ $bad -eq 0 ] && echo "  PASS syntax, imports and service-worker manifest" || FAILED=1
+# Every screenshot the guided tour points at must exist. Renaming one in
+# tools/screenshots.mjs and forgetting the page is the easy mistake here.
+grep -oE 'src="shots/[^"]+"' features.html | sed 's/src="//;s/"//' | sort -u | while read -r img; do
+  [ -f "$img" ] || { echo "  FAIL features.html references missing $img"; exit 1; }
+done || bad=1
+
+[ $bad -eq 0 ] && echo "  PASS syntax, imports, sw manifest and tour screenshots" || FAILED=1
 
 # ── Unit tests ──────────────────────────────────
 # state.js reaches for IndexedDB, which node has no opinion about; stub only the
