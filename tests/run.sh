@@ -43,6 +43,26 @@ done || bad=1
 
 [ $bad -eq 0 ] && echo "  PASS syntax, imports, sw manifest and tour screenshots" || FAILED=1
 
+# ── Are the guided tour's screenshots still current? ─────
+# A warning rather than a failure: plenty of changes to js/ move no pixels at
+# all, and a check that cried wolf would get ignored. Naming the changed files
+# lets you judge in a second whether any of it was visual.
+if [ -f shots/.captured ]; then
+  drift=$(diff <(cat shots/.captured) \
+               <(find js css -type f \( -name '*.js' -o -name '*.css' \) | sort | xargs shasum -a 256) \
+          | grep -E '^[<>]' | awk '{print $NF}' | sort -u)
+  if [ -n "$drift" ]; then
+    echo
+    echo "NOTE  the tour screenshots were taken before these files changed:"
+    echo "$drift" | sed 's/^/        /'
+    echo "      If any of that was visual, refresh them:  ./tools/screenshots.sh"
+  else
+    echo "  PASS tour screenshots match the current app"
+  fi
+else
+  echo "  NOTE no shots/.captured — run ./tools/screenshots.sh to enable staleness checks"
+fi
+
 # ── Unit tests ──────────────────────────────────
 # state.js reaches for IndexedDB, which node has no opinion about; stub only the
 # import so the algorithms under test are the real ones, character for character.

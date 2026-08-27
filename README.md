@@ -7,7 +7,9 @@ feature, tap-to-read reasoning for each one, and what is deliberately never scor
 language therapists, readable by anyone. Reachable in-app from the ❓ in the Parent Dashboard header.
 
 Its screenshots are generated from the real app, never mocked up, with `./tools/screenshots.sh` —
-which seeds invented progress first, so nothing on the public page is a real child's data.
+which seeds invented progress first, so nothing on the public page is a real child's data. That script
+also fingerprints `js/` and `css/`, and `tests/run.sh` then tells you when the tour has drifted behind
+the app, so keeping it current isn't something you have to remember.
 
 ## Features
 

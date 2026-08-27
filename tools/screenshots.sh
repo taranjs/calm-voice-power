@@ -48,4 +48,10 @@ for p in sorted(pathlib.Path('shots').glob('*.png')):
     print(f"  {p.name} {p.stat().st_size//1024}K")
 PYEOF
 
+# Fingerprint the files that can change what a screen looks like. tests/run.sh
+# compares this against the working tree and says when the tour has drifted, so
+# keeping the screenshots current is not something anyone has to remember.
+find js css -type f \( -name '*.js' -o -name '*.css' \) | sort | xargs shasum -a 256 > shots/.captured
+echo "  fingerprinted $(wc -l < shots/.captured | tr -d ' ') source files"
+
 du -sh shots

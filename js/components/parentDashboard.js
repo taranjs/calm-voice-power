@@ -76,10 +76,10 @@ export function renderParentDashboard() {
         <!-- Why the app is built the way it is. Sits up here rather than in a
              card at the bottom because a therapist being shown the app should
              not have to scroll past a fortnight of a child's mood data to find
-             it. Opens outside the app, so a stray tap never replaces his
+             it. Opens outside the app, so a stray tap never replaces a
              practice session with an essay. -->
         <a class="btn btn-ghost" id="why-link" href="./features.html" target="_blank" rel="noopener"
-           title="Why each feature exists" aria-label="Why each feature exists"
+           title="How this app works — a guided tour" aria-label="How this app works — a guided tour"
            style="padding:10px 16px;font-size:1rem;text-decoration:none;line-height:1">❓</a>
         <button class="btn btn-ghost" id="exit-btn" style="padding:10px 16px;font-size:0.85rem">✕</button>
       </div>
@@ -144,7 +144,7 @@ export function renderParentDashboard() {
         </div>
         ${earlier !== null ? `
           <div class="flex-between mb-8">
-            <span style="font-size:0.85rem;color:var(--ink-faint)">When he started:</span>
+            <span style="font-size:0.85rem;color:var(--ink-faint)">When they started:</span>
             <span style="font-weight:800">${earlier}ms</span>
           </div>` : ''}
         <div class="flex-between">
@@ -152,7 +152,7 @@ export function renderParentDashboard() {
           <span style="font-weight:800">${goalMs}ms${goalMs >= ONSET_GOAL_MS ? ' 🏅' : ''}</span>
         </div>
         ${earlier !== null && recent > earlier
-          ? `<p style="color:var(--mint);font-weight:700;margin-top:10px;font-size:0.9rem">✨ Starts are ${Math.round(((recent - earlier) / earlier) * 100)}% gentler than when he began.</p>`
+          ? `<p style="color:var(--mint);font-weight:700;margin-top:10px;font-size:0.9rem">✨ Starts are ${Math.round(((recent - earlier) / earlier) * 100)}% gentler than when they began.</p>`
           : earlier !== null
             ? '<p style="color:var(--ink-faint);margin-top:10px;font-size:0.85rem">Holding steady for now – this one moves slowly, and that is normal.</p>'
             : ''}
@@ -188,9 +188,9 @@ export function renderParentDashboard() {
           `).join('')}
     </div>
 
-    <!-- Where his progress lives -->
+    <!-- Where the child's progress lives -->
     <div class="card mt-16" id="storage-card">
-      <div style="font-weight:800;margin-bottom:8px">💾 His progress on this device</div>
+      <div style="font-weight:800;margin-bottom:8px">💾 Progress on this device</div>
       <p style="font-size:0.85rem;line-height:1.6" id="storage-note">Checking…</p>
     </div>
 
@@ -224,14 +224,14 @@ export function renderParentDashboard() {
 
     if (persisted === true) {
       note.innerHTML =
-        `<strong style="color:var(--mint)">Protected.</strong> His streak, coins and recordings are ` +
+        `<strong style="color:var(--mint)">Protected.</strong> Their streak, coins and recordings are ` +
         `marked so this browser won't clear them automatically.${size} They still live only on this ` +
         `device — they won't appear on another phone or tablet.`;
     } else if (persisted === false && !isInstalled()) {
       note.innerHTML =
-        `<strong style="color:var(--sun-warm)">Not protected yet.</strong> Everything he has earned is ` +
+        `<strong style="color:var(--sun-warm)">Not protected yet.</strong> Everything they have earned is ` +
         `saved only in this browser on this device, and browsers can clear that after a stretch without ` +
-        `opening the app — taking his streak and recordings with it. Adding Calm Voice to the home ` +
+        `opening the app — taking their streak and recordings with it. Adding Calm Voice to the home ` +
         `screen (Share → Add to Home Screen) makes that far less likely.${size}`;
     } else {
       note.innerHTML =
