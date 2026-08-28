@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calm-voice-v15';
+const CACHE_NAME = 'calm-voice-v16';
 const ASSETS = [
   './',
   './index.html',

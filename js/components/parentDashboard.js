@@ -273,6 +273,39 @@ export function renderParentDashboard() {
     backupNote.textContent = msg;
   };
 
+  // Hand the file over by whatever route this platform actually supports.
+  // Never dead-end: at this point the backup exists, and the only failure worth
+  // reporting is being unable to get it off the device by any means.
+  async function handOver(file) {
+    // iOS gives an installed PWA no usable <a download>, so the share sheet is
+    // the only way a file leaves the device there — try it first where offered.
+    if (navigator.canShare?.({ files: [file] }) && navigator.share) {
+      try {
+        await navigator.share({ files: [file], title: 'Calm Voice backup' });
+        return 'shared';
+      } catch (e) {
+        if (e?.name === 'AbortError') return 'cancelled';
+        // Everything else falls through to a download. The common one is
+        // NotAllowedError: encoding the recordings takes long enough that the
+        // tap's user activation has expired by the time share() is called.
+      }
+    }
+    try {
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url; a.download = file.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 30000);
+      return 'downloaded';
+    } catch {
+      // Last resort: put it on screen so it can be saved by hand.
+      const url = URL.createObjectURL(file);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+      return 'opened';
+    }
+  }
+
   backupBtn.addEventListener('click', async () => {
     playClick();
     // Claim the button synchronously: encoding the recordings takes a moment and
@@ -281,28 +314,31 @@ export function renderParentDashboard() {
     const label = backupBtn.textContent;
     backupBtn.textContent = 'Saving…';
     say('Gathering everything…');
-    try {
-      const data = await exportAll();
-      const json = JSON.stringify(data);
-      const file = new File([json], backupFilename(), { type: 'application/json' });
-      const mb   = (file.size / 1048576).toFixed(1);
 
-      // iOS gives no usable download from an installed PWA, so offer the share
-      // sheet where it exists — that is how a file leaves the device there.
-      if (navigator.canShare?.({ files: [file] }) && navigator.share) {
-        await navigator.share({ files: [file], title: 'Calm Voice backup' });
-        say(`Backup shared — ${mb} MB.`, 'var(--mint)');
-      } else {
-        const url = URL.createObjectURL(file);
-        const a = document.createElement('a');
-        a.href = url; a.download = file.name;
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
-        say(`Saved ${file.name} — ${mb} MB. Keep it somewhere that is not this device.`, 'var(--mint)');
-      }
+    // Building and saving fail for completely different reasons, and telling
+    // them apart is the difference between a fixable report and a shrug.
+    let file, skipped = 0;
+    try {
+      const { data, skipped: missed } = await exportAll();
+      skipped = missed;
+      file = new File([JSON.stringify(data)], backupFilename(), { type: 'application/json' });
     } catch (e) {
-      if (e?.name === 'AbortError') say('');       // a cancelled share is not an error
-      else say('Could not build the backup. Nothing was changed.', 'var(--coral)');
+      say(`Could not read the saved data (${e?.name || 'error'}). Nothing was changed.`, 'var(--coral)');
+      backupBtn.disabled = false; backupBtn.textContent = label;
+      return;
+    }
+
+    const mb   = (file.size / 1048576).toFixed(1);
+    const note = skipped ? ` ${skipped} recording${skipped === 1 ? '' : 's'} could not be read and ${skipped === 1 ? 'is' : 'are'} not in it.` : '';
+    try {
+      const how = await handOver(file);
+      if (how === 'cancelled') say('');
+      else if (how === 'shared') say(`Backup shared — ${mb} MB.${note}`, 'var(--mint)');
+      else say(`Saved ${file.name} — ${mb} MB. Keep it somewhere that is not this device.${note}`,
+               'var(--mint)');
+    } catch (e) {
+      say(`Built the backup (${mb} MB) but could not save it here (${e?.name || 'error'}). ` +
+          `Try again from a browser tab rather than the installed app.`, 'var(--coral)');
     } finally {
       backupBtn.disabled = false;
       backupBtn.textContent = label;

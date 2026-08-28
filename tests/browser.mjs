@@ -446,11 +446,12 @@ async function open(wav = 'gentle.wav') {
 
   const exported = await page.evaluate(async () => {
     const { exportAll, backupFilename } = await import('./js/modules/backup.js');
-    const data = await exportAll();
+    const { data, skipped } = await exportAll();
     const json = JSON.stringify(data);
-    return { json, name: backupFilename(new Date(2026, 7, 28)), rec: data.stores.recordings.length };
+    return { json, name: backupFilename(new Date(2026, 7, 28)),
+             rec: data.stores.recordings.length, skipped };
   });
-  t('a backup carries the recordings', exported.rec === 1);
+  t('a backup carries the recordings', exported.rec === 1 && exported.skipped === 0);
   t('it is plain JSON a parent could keep anywhere',
     JSON.parse(exported.json).app === 'calm-voice-power');
   t('the file is named for the day it was made',
@@ -520,6 +521,63 @@ async function open(wav = 'gentle.wav') {
   t('the save button produces a file',
     /MB/.test(await page.locator('#backup-note').textContent()),
     (await page.locator('#backup-note').textContent()).slice(0, 70));
+
+  // The reported failure. Encoding the recordings takes long enough that the
+  // tap's user activation can expire before share() is reached, and iOS then
+  // throws NotAllowedError. That must fall through to a download, not be
+  // reported to a parent as a failure to build anything.
+  await page.evaluate(() => {
+    navigator.canShare = () => true;
+    navigator.share = () => Promise.reject(Object.assign(new Error('gone'), { name: 'NotAllowedError' }));
+  });
+  await page.evaluate(() => window.__nav('home'));
+  await page.evaluate(() => window.__nav('parent'));
+  await page.waitForSelector('#backup-btn');
+  const dl = page.waitForEvent('download', { timeout: 8000 }).catch(() => null);
+  await page.locator('#backup-btn').click();
+  const got = await dl;
+  t('a share the platform refuses still saves the file',
+    !!got, got ? await got.suggestedFilename() : 'no download fired');
+  t('and does not tell the parent the backup failed',
+    !/Could not/.test(await page.locator('#backup-note').textContent()),
+    (await page.locator('#backup-note').textContent()).slice(0, 70));
+
+  // A cancelled share is a decision, not an error.
+  await page.evaluate(() => {
+    navigator.share = () => Promise.reject(Object.assign(new Error('nope'), { name: 'AbortError' }));
+  });
+  await page.evaluate(() => window.__nav('home'));
+  await page.evaluate(() => window.__nav('parent'));
+  await page.waitForSelector('#backup-btn');
+  await page.locator('#backup-btn').click();
+  await page.waitForFunction(
+    () => document.querySelector('#backup-note')?.textContent === '', null, { timeout: 8000 }
+  ).catch(() => {});
+  t('cancelling the share says nothing at all',
+    (await page.locator('#backup-note').textContent()) === '');
+
+  // One unreadable recording must not cost the whole backup.
+  const partial = await page.evaluate(async () => {
+    const db = await import('./js/modules/db.js');
+    // IndexedDB structured-clones a Blob on the way in, so the object read back
+    // is never the one that went in — identity cannot mark the bad one. Its size
+    // can: this take is one byte, the good one twelve.
+    const bad = new Blob(['x'], { type: 'audio/webm' });
+    const orig = FileReader.prototype.readAsDataURL;
+    FileReader.prototype.readAsDataURL = function (b) {
+      if (b && b.size === 1) { setTimeout(() => this.onerror?.(new Error('unreadable')), 0); return; }
+      return orig.call(this, b);
+    };
+    await db.dbPut('recordings', { promptId: 'today', date: '2026-08-05T09:00:00.000Z', blob: bad });
+    const { exportAll } = await import('./js/modules/backup.js?v=partial');
+    const { data, skipped } = await exportAll();
+    FileReader.prototype.readAsDataURL = orig;
+    return { skipped, rows: data.stores.recordings.length,
+             good: data.stores.recordings.filter(r => r.blob?.data).length };
+  });
+  t('a recording that will not read is skipped, not fatal',
+    partial.skipped === 1 && partial.rows === 2 && partial.good === 1,
+    `skipped ${partial.skipped}, kept ${partial.good} of ${partial.rows}`);
 
   t('no console errors', errors.length === 0, errors.join(' | '));
   await browser.close();

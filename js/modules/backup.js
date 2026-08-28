@@ -38,21 +38,37 @@ function base64ToBlob(data, type) {
   return new Blob([bytes], { type: type || 'application/octet-stream' });
 }
 
-async function packValue(v) {
+// One unreadable recording must not cost him the whole backup. Safari has a
+// history of handing back Blobs from IndexedDB that will not read, and a backup
+// missing one take is vastly better than no backup at all — so a failure here is
+// recorded and skipped rather than thrown.
+async function packValue(v, skipped) {
   if (v instanceof Blob) {
-    return { __blob: true, type: v.type, size: v.size, data: await blobToBase64(v) };
+    try {
+      return { __blob: true, type: v.type, size: v.size, data: await blobToBase64(v) };
+    } catch {
+      skipped.count++;
+      return null;
+    }
   }
-  if (Array.isArray(v)) return Promise.all(v.map(packValue));
+  if (Array.isArray(v)) {
+    const out = [];
+    for (const item of v) out.push(await packValue(item, skipped));
+    return out;
+  }
   if (v && typeof v === 'object') {
     const out = {};
-    for (const [k, val] of Object.entries(v)) out[k] = await packValue(val);
+    for (const [k, val] of Object.entries(v)) out[k] = await packValue(val, skipped);
     return out;
   }
   return v;
 }
 
 function unpackValue(v) {
-  if (v && typeof v === 'object' && v.__blob) return base64ToBlob(v.data, v.type);
+  if (v && typeof v === 'object' && v.__blob) {
+    // A backup written despite an unreadable recording carries no data for it.
+    return v.data ? base64ToBlob(v.data, v.type) : null;
+  }
   if (Array.isArray(v)) return v.map(unpackValue);
   if (v && typeof v === 'object') {
     const out = {};
@@ -64,18 +80,25 @@ function unpackValue(v) {
 
 // ── Export ───────────────────────────────────────
 
-/** The whole database as one plain object, ready to be stringified. */
+/**
+ * The whole database as one plain object, ready to be stringified.
+ * Returns { data, skipped } — skipped counts recordings that would not read.
+ */
 export async function exportAll() {
   await openDB();
+  const skipped = { count: 0 };
   const stores = {};
   for (const name of STORES) {
-    stores[name] = await packValue(await dbGetAll(name));
+    stores[name] = await packValue(await dbGetAll(name), skipped);
   }
   return {
-    app: 'calm-voice-power',
-    format: BACKUP_FORMAT,
-    exportedAt: new Date().toISOString(),
-    stores,
+    data: {
+      app: 'calm-voice-power',
+      format: BACKUP_FORMAT,
+      exportedAt: new Date().toISOString(),
+      stores,
+    },
+    skipped: skipped.count,
   };
 }
 
