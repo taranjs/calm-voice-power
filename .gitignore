@@ -7,3 +7,6 @@ tests/.tmp/
 # direnv: the Cloudflare token lives in the keychain, but allow a local file too
 .env.local
 .direnv/
+
+# built by tools/stage.sh
+_site/

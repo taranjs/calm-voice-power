@@ -30,11 +30,30 @@ Create the token at [dash.cloudflare.com/profile/api-tokens](https://dash.cloudf
 → Custom token, with **Account · Cloudflare Pages · Edit** and **Account · Account Settings · Read**.
 Nothing broader is needed.
 
-Then, to publish:
+Then, to publish by hand:
 
 ```bash
 ./tools/deploy.sh
 ```
+
+### Automatic deploys on push
+
+Not on by default — `deploy.sh` is manual. To have every push to `main` go live, connect the
+repo in the Cloudflare dashboard (Workers & Pages → the project → Settings → Builds) with:
+
+| Setting | Value |
+|---|---|
+| Framework preset | None |
+| Build command | `bash tools/stage.sh` |
+| Build output directory | `_site` |
+| Root directory | `/` |
+
+This works with a private repo, and needs no secrets in GitHub. The build command is the
+same staging `deploy.sh` uses, so manual and automatic deploys publish identical trees —
+without it Cloudflare would serve the whole repo, tests and notes included.
+
+Worth deciding rather than defaulting: with auto-deploy on, a bad push reaches the child's
+device within a minute, and nothing in that pipeline runs the tests.
 
 It stages only the files the browser needs (`tests/`, `tools/` and the docs stay behind —
 there is no build step, so the whole tree would otherwise go up), names the destination

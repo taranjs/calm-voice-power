@@ -32,18 +32,14 @@ echo
 read -r -p "Deploy '$PROJECT' to this account? [y/N] " reply
 [ "$reply" = "y" ] || [ "$reply" = "Y" ] || { echo "Nothing was uploaded."; exit 1; }
 
-STAGE=$(mktemp -d)
-trap 'rm -rf "$STAGE"' EXIT
+STAGE="$(mktemp -d)/site"
+trap 'rm -rf "$(dirname "$STAGE")"' EXIT
 
-cp index.html features.html manifest.json sw.js "$STAGE/"
-cp -R css js icons shots "$STAGE/"
-
-# cp -R brings the dotfiles along: macOS .DS_Store droppings and shots/.captured,
-# which is the screenshot fingerprint and no business of anyone's browser.
-find "$STAGE" -name '.*' -print -delete | sed 's|^'"$STAGE"'/|  dropped |'
-
+# The same staging Cloudflare's own build runs, so a manual deploy and an
+# automatic one publish byte-identical trees.
+./tools/stage.sh "$STAGE"
 echo
-echo "Staged $(find "$STAGE" -type f | wc -l | tr -d ' ') files ($(du -sh "$STAGE" | cut -f1))"
+
 npx wrangler pages deploy "$STAGE" --project-name "$PROJECT" --branch "$BRANCH" --commit-dirty=true
 
 cat <<'NOTE'
