@@ -38,6 +38,10 @@ trap 'rm -rf "$STAGE"' EXIT
 cp index.html features.html manifest.json sw.js "$STAGE/"
 cp -R css js icons shots "$STAGE/"
 
+# cp -R brings the dotfiles along: macOS .DS_Store droppings and shots/.captured,
+# which is the screenshot fingerprint and no business of anyone's browser.
+find "$STAGE" -name '.*' -print -delete | sed 's|^'"$STAGE"'/|  dropped |'
+
 echo
 echo "Staged $(find "$STAGE" -type f | wc -l | tr -d ' ') files ($(du -sh "$STAGE" | cut -f1))"
 npx wrangler pages deploy "$STAGE" --project-name "$PROJECT" --branch "$BRANCH" --commit-dirty=true
