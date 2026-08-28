@@ -52,9 +52,18 @@ Set up once:
 **Do not also connect Cloudflare's own Git integration.** It builds on push regardless of
 whether anything passes, so you would have two deploy paths and only one of them gated.
 
-After deploying, the workflow fetches the live URL and checks the app shell, the guided tour,
-`js/main.js` and `sw.js` all return 200 — a deploy can report success and still serve a
-broken site.
+After deploying, the workflow runs `tools/live-check.mjs` against the URL that just went
+live: a real browser, checking the app boots, the service worker installs, the guided tour
+opens, and the app still works offline.
+
+That is not paranoia. Hosts differ in ways a local static server cannot show you — Cloudflare
+Pages answers `/features.html` with a 308 to `/features`, and a service worker that precached
+the redirect then failed *every* navigation to the tour with a bare `ERR_FAILED`. The suite
+was green throughout. Run it by hand any time:
+
+```bash
+node tools/live-check.mjs https://calm-voice-power.pages.dev
+```
 
 It stages only the files the browser needs (`tests/`, `tools/` and the docs stay behind —
 there is no build step, so the whole tree would otherwise go up), names the destination

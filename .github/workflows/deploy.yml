@@ -86,16 +86,13 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy _site --project-name=calm-voice-power --branch=main
 
-      # A deploy can report success and still serve a broken shell. Ask the
-      # thing that just went live whether it is actually there.
+      # A deploy can report success and still serve a broken site, and hosts
+      # differ in ways local tests cannot see — Cloudflare Pages 308s
+      # /features.html to /features, which once broke every navigation to the
+      # tour. So drive the thing that just went live in a real browser.
       - name: Check what went live
         run: |
           url="${{ steps.deploy.outputs.deployment-url }}"
-          if [ -z "$url" ]; then echo "No deployment URL reported; skipping check."; exit 0; fi
-          echo "Checking $url"
-          for path in "" "features.html" "js/main.js" "sw.js"; do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' --retry 5 --retry-delay 3 \
-                   --retry-all-errors "$url/$path")
-            echo "  $code  /$path"
-            [ "$code" = "200" ] || { echo "::error::$url/$path returned $code"; exit 1; }
-          done
+          [ -z "$url" ] && url="https://calm-voice-power.pages.dev"
+          PLAYWRIGHT_MODULE="$PWD/node_modules/playwright/index.mjs" \
+            node tools/live-check.mjs "$url"

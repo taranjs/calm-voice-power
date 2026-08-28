@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calm-voice-v16';
+const CACHE_NAME = 'calm-voice-v17';
 const ASSETS = [
   './',
   './index.html',
@@ -53,9 +53,22 @@ const ASSETS = [
 const APP_SHELL_URL = new URL('./index.html', self.registration.scope).href;
 
 self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting())
-  );
+  e.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await Promise.all(ASSETS.map(async url => {
+      const res = await fetch(url, { cache: 'reload' });
+      if (!res.ok) throw new Error(`precache failed for ${url}: ${res.status}`);
+      // Some hosts redirect: Cloudflare Pages answers /features.html with a 308
+      // to /features. A cached response that arrived via a redirect carries
+      // redirected:true, and Chrome refuses to satisfy a *navigation* from one —
+      // so the page fails to open with a bare ERR_FAILED once the worker is in
+      // charge. Re-wrapping as a plain 200 keeps it usable offline.
+      await cache.put(url, res.redirected
+        ? new Response(await res.blob(), { status: 200, statusText: 'OK', headers: res.headers })
+        : res);
+    }));
+    await self.skipWaiting();
+  })());
 });
 
 self.addEventListener('activate', e => {
