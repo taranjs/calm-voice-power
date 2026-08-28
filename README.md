@@ -36,24 +36,25 @@ Then, to publish by hand:
 ./tools/deploy.sh
 ```
 
-### Automatic deploys on push
+### Automatic deploys, gated by the tests
 
-Not on by default — `deploy.sh` is manual. To have every push to `main` go live, connect the
-repo in the Cloudflare dashboard (Workers & Pages → the project → Settings → Builds) with:
+`.github/workflows/deploy.yml` runs the whole suite on every push to `main` and deploys
+**only if it passes**. A red suite means no deploy: the child's app keeps running the last
+version that worked.
 
-| Setting | Value |
-|---|---|
-| Framework preset | None |
-| Build command | `bash tools/stage.sh` |
-| Build output directory | `_site` |
-| Root directory | `/` |
+Set up once:
 
-This works with a private repo, and needs no secrets in GitHub. The build command is the
-same staging `deploy.sh` uses, so manual and automatic deploys publish identical trees —
-without it Cloudflare would serve the whole repo, tests and notes included.
+1. Deploy manually with `./tools/deploy.sh` — this creates the Cloudflare Pages project.
+2. Add two repository secrets under **Settings → Secrets and variables → Actions**:
+   - `CLOUDFLARE_API_TOKEN` — the same token `./tools/cf-auth.sh` stores
+   - `CLOUDFLARE_ACCOUNT_ID` — printed by `./tools/cf-auth.sh --show`
 
-Worth deciding rather than defaulting: with auto-deploy on, a bad push reaches the child's
-device within a minute, and nothing in that pipeline runs the tests.
+**Do not also connect Cloudflare's own Git integration.** It builds on push regardless of
+whether anything passes, so you would have two deploy paths and only one of them gated.
+
+After deploying, the workflow fetches the live URL and checks the app shell, the guided tour,
+`js/main.js` and `sw.js` all return 200 — a deploy can report success and still serve a
+broken site.
 
 It stages only the files the browser needs (`tests/`, `tools/` and the docs stay behind —
 there is no build step, so the whole tree would otherwise go up), names the destination

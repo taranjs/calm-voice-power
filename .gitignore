@@ -10,3 +10,8 @@ tests/.tmp/
 
 # built by tools/stage.sh
 _site/
+
+# CI installs Playwright here; never committed
+node_modules/
+package.json
+package-lock.json

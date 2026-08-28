@@ -1,0 +1,81 @@
+# Test, then deploy. In that order, in one job, so there is exactly one path to
+# production and it runs through the tests.
+#
+# The alternative was letting Cloudflare's own Git integration build on push.
+# That deploys whether or not anything passes — the tests would have to run
+# somewhere else, and nothing would connect the two. Here a red suite simply
+# means no deploy: the child's app keeps running the last version that worked.
+#
+# Requires two repository secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   – same token as ./tools/cf-auth.sh uses
+#   CLOUDFLARE_ACCOUNT_ID  – printed by ./tools/cf-auth.sh --show
+name: Test and deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never let two deploys race. Queue them instead of cancelling: a cancelled run
+# could stop between staging and deploying.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Chromium is ~150MB and the slowest part of the run by far.
+      - name: Cache the browser
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}
+
+      - name: Install Playwright
+        run: |
+          npm init -y >/dev/null
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+
+      # The whole suite: syntax and import graph, the service-worker manifest,
+      # the pure logic, and the real app driven in Chromium with a fake
+      # microphone. A failure here is the point of this workflow.
+      - name: Run the tests
+        run: PLAYWRIGHT_MODULE="$PWD/node_modules/playwright/index.mjs" bash tests/run.sh
+
+      # Only what a browser needs. Also fails if sw.js precaches a file that is
+      # not being published, which would break the app on first load.
+      - name: Stage the site
+        run: bash tools/stage.sh
+
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy _site --project-name=calm-voice-power --branch=main
+
+      # A deploy can report success and still serve a broken shell. Ask the
+      # thing that just went live whether it is actually there.
+      - name: Check what went live
+        run: |
+          url="${{ steps.deploy.outputs.deployment-url }}"
+          if [ -z "$url" ]; then echo "No deployment URL reported; skipping check."; exit 0; fi
+          echo "Checking $url"
+          for path in "" "features.html" "js/main.js" "sw.js"; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --retry 5 --retry-delay 3 \
+                   --retry-all-errors "$url/$path")
+            echo "  $code  /$path"
+            [ "$code" = "200" ] || { echo "::error::$url/$path returned $code"; exit 1; }
+          done

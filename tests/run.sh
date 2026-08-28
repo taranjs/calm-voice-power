@@ -81,7 +81,10 @@ node tests/unit.mjs || FAILED=1
 [ "$MODE" = "unit" ] && { rm -rf "$TMP"; exit $FAILED; }
 
 # ── Browser tests ───────────────────────────────
-PW=$(node -e '
+# CI can point straight at the module rather than relying on the npx cache layout.
+PW=${PLAYWRIGHT_MODULE:-}
+[ -n "$PW" ] && [ ! -f "$PW" ] && { echo "PLAYWRIGHT_MODULE=$PW does not exist"; exit 1; }
+[ -z "$PW" ] && PW=$(node -e '
 const fs=require("fs"),path=require("path"),os=require("os");
 const roots=[process.cwd(),os.homedir()+"/.npm/_npx"];
 const hits=[];
