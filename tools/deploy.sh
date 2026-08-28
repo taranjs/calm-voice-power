@@ -15,9 +15,19 @@ BRANCH=main
 [ "${1:-}" = "--preview" ] && BRANCH=preview
 
 # Deploying to the wrong Cloudflare account is not a mistake you notice quickly,
-# so say whose account this is before anything is uploaded.
-echo "Cloudflare account:"
-npx wrangler whoami 2>&1 | grep -E "associated with the email|Account Name" || true
+# so name the destination before anything is uploaded. With direnv set up, the
+# project token decides this; without one, wrangler falls back to whatever you
+# last logged into globally — which is exactly the case worth showing.
+if [ -n "${CLOUDFLARE_API_TOKEN:-}" ]; then
+  who=$(curl -sS https://api.cloudflare.com/client/v4/accounts \
+        -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+        | sed 's/.*"name":"\([^"]*\)".*/\1/' | head -1)
+  echo "Cloudflare account: ${who:-unknown} (project token via direnv)"
+else
+  echo "Cloudflare account: from your global wrangler login — no project token set."
+  echo "                    ./tools/cf-auth.sh pins this repo to one account."
+  npx wrangler whoami 2>&1 | grep -E "associated with the email" || true
+fi
 echo
 read -r -p "Deploy '$PROJECT' to this account? [y/N] " reply
 [ "$reply" = "y" ] || [ "$reply" = "Y" ] || { echo "Nothing was uploaded."; exit 1; }

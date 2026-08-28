@@ -13,10 +13,33 @@ the app, so keeping it current isn't something you have to remember.
 
 ## Deploying
 
-`./tools/deploy.sh` publishes to Cloudflare Pages, staging only the files the browser needs
-(`tests/`, `tools/` and the docs stay behind — there is no build step, so the whole tree
-would otherwise go up). It prints which Cloudflare account you are signed into and waits for
-confirmation, because deploying to the wrong account is not a mistake you notice quickly.
+First time only, pin this repo to the right Cloudflare account:
+
+```bash
+./tools/cf-auth.sh    # paste an API token; it verifies it and finds the account
+direnv allow
+```
+
+The token goes into the macOS keychain, and `.envrc` exports it as
+`CLOUDFLARE_API_TOKEN` **only inside this directory**. Wrangler prefers that over its OAuth
+session, so this project always deploys to the same account no matter what you last ran
+`wrangler login` for — and nothing outside this directory is affected. No logout/login dance.
+`./tools/cf-auth.sh --show` says whose token is stored, `--forget` removes it.
+
+Create the token at [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens)
+→ Custom token, with **Account · Cloudflare Pages · Edit** and **Account · Account Settings · Read**.
+Nothing broader is needed.
+
+Then, to publish:
+
+```bash
+./tools/deploy.sh
+```
+
+It stages only the files the browser needs (`tests/`, `tools/` and the docs stay behind —
+there is no build step, so the whole tree would otherwise go up), names the destination
+account, and waits for confirmation, because deploying to the wrong account is not a mistake
+you notice quickly.
 
 **Before moving to a new address:** save a backup from the Parent Dashboard on the old one
 and restore it on the new one. Storage is per-origin; the new address starts empty.
