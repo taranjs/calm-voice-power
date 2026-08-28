@@ -69,6 +69,9 @@ fi
 sed "s|import { getSetting, setSetting, dbPut, dbGetAll } from './db.js';|const getSetting=async(k,f)=>f, setSetting=async()=>{}, dbPut=async()=>{}, dbGetAll=async()=>[];|" \
   js/modules/state.js > "$TMP/state.mjs"
 cp js/modules/voice.js "$TMP/voice.mjs"
+# mergeStores is pure, but the file imports db.js at the top; stub only the import.
+sed "s|import { dbGetAll, dbPut, openDB } from './db.js';|const dbGetAll=async()=>[], dbPut=async()=>{}, openDB=async()=>{};|" \
+  js/modules/backup.js > "$TMP/backup.mjs"
 cp js/modules/content.js "$TMP/content.js"
 cp js/modules/content.js "$TMP/content.mjs"
 # voice.js pulls in the AudioContext, which node has no use for. The functions

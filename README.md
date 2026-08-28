@@ -11,6 +11,16 @@ which seeds invented progress first, so nothing on the public page is a real chi
 also fingerprints `js/` and `css/`, and `tests/run.sh` then tells you when the tour has drifted behind
 the app, so keeping it current isn't something you have to remember.
 
+## Deploying
+
+`./tools/deploy.sh` publishes to Cloudflare Pages, staging only the files the browser needs
+(`tests/`, `tools/` and the docs stay behind — there is no build step, so the whole tree
+would otherwise go up). It prints which Cloudflare account you are signed into and waits for
+confirmation, because deploying to the wrong account is not a mistake you notice quickly.
+
+**Before moving to a new address:** save a backup from the Parent Dashboard on the old one
+and restore it on the new one. Storage is per-origin; the new address starts empty.
+
 ## Features
 
 - **Voice-driven practice** – The microphone is the controller. Every scoring activity
@@ -45,6 +55,10 @@ the app, so keeping it current isn't something you have to remember.
   first-practice bonus), unlockable avatars, customization
 - **Emotion Check-In** – Before/after emoji scale
 - **Parent Dashboard** – Weekly chart, trends, coaching tips
+- **Backup & restore** – One file holding practice days, coins, voice setup and every
+  recording. Restoring **merges**, so it can never cost you data that is already on the
+  device. Needed before changing phone or web address: IndexedDB is scoped to the origin,
+  so a new address starts empty.
 - **Offline support** – Full service worker caching
 - **IndexedDB** – All data stored locally
 

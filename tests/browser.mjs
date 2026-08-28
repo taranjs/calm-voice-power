@@ -421,6 +421,110 @@ async function open(wav = 'gentle.wav') {
   await browser.close();
 }
 
+// ── Backup: a real round-trip through a real database ──
+//
+// The unit tests cover the merge rules. What only a browser can prove is that a
+// recording survives the journey: Blob → base64 → JSON → base64 → Blob, byte for
+// byte. If that is wrong, a family moves device and every recording is silence.
+{
+  console.log('\nBackup and restore');
+  const { browser, page, errors } = await open();
+
+  const seeded = await page.evaluate(async () => {
+    const db = await import('./js/modules/db.js');
+    const bytes = new Uint8Array([82, 73, 70, 70, 1, 2, 3, 250, 0, 128, 255, 7]);
+    await db.setSetting('coins', 321);
+    await db.setSetting('practiceDays', ['2026-08-01', '2026-08-02', '2026-08-03']);
+    await db.setSetting('bests', { holdMs: 4321, pauseMs: 900, pacedWords: 7 });
+    await db.dbPut('recordings', {
+      promptId: 'name', promptText: 'My name is…', date: '2026-08-02T09:00:00.000Z',
+      blob: new Blob([bytes], { type: 'audio/webm' }),
+    });
+    await db.dbPut('words', { id: 'octopus', word: 'octopus', custom: true });
+    return [...bytes].join(',');
+  });
+
+  const exported = await page.evaluate(async () => {
+    const { exportAll, backupFilename } = await import('./js/modules/backup.js');
+    const data = await exportAll();
+    const json = JSON.stringify(data);
+    return { json, name: backupFilename(new Date(2026, 7, 28)), rec: data.stores.recordings.length };
+  });
+  t('a backup carries the recordings', exported.rec === 1);
+  t('it is plain JSON a parent could keep anywhere',
+    JSON.parse(exported.json).app === 'calm-voice-power');
+  t('the file is named for the day it was made',
+    exported.name === 'calm-voice-backup-2026-08-28.json');
+
+  // Wipe every store, exactly as a new origin or a new phone would look.
+  await page.evaluate(async () => {
+    const db = await import('./js/modules/db.js');
+    for (const s of ['settings', 'sessions', 'recordings', 'words', 'challenges', 'rewards']) {
+      for (const row of await db.dbGetAll(s)) {
+        await db.dbDelete(s, s === 'settings' ? row.key : row.id);
+      }
+    }
+  });
+  const wiped = await page.evaluate(async () =>
+    (await import('./js/modules/db.js')).getSetting('coins', null));
+  t('a fresh device really is empty', wiped === null);
+
+  const restored = await page.evaluate(async json => {
+    const { importAll, parseBackup } = await import('./js/modules/backup.js');
+    const db = await import('./js/modules/db.js');
+    const added = await importAll(parseBackup(json));
+    const rec   = (await db.dbGetAll('recordings'))[0];
+    const bytes = [...new Uint8Array(await rec.blob.arrayBuffer())].join(',');
+    return {
+      added,
+      coins: await db.getSetting('coins', null),
+      days:  await db.getSetting('practiceDays', []),
+      bests: await db.getSetting('bests', null),
+      words: (await db.dbGetAll('words')).length,
+      type:  rec.blob.type,
+      bytes,
+    };
+  }, exported.json);
+
+  t('coins, days and bests all come back',
+    restored.coins === 321 && restored.days.length === 3 && restored.bests.holdMs === 4321);
+  t('his own words come back', restored.words === 1);
+  t('the recording is audio again, not a string',
+    restored.type === 'audio/webm');
+  t('and it is byte-for-byte the audio he recorded', restored.bytes === seeded,
+    restored.bytes === seeded ? '12 bytes intact' : `${restored.bytes} vs ${seeded}`);
+  t('it reports what arrived', restored.added.days === 3 && restored.added.recordings === 1);
+
+  // The dangerous direction: restoring an old backup over newer practice.
+  const kept = await page.evaluate(async json => {
+    const db = await import('./js/modules/db.js');
+    await db.setSetting('coins', 999);
+    await db.setSetting('practiceDays', ['2026-08-03', '2026-09-09']);
+    const { importAll, parseBackup } = await import('./js/modules/backup.js');
+    await importAll(parseBackup(json));
+    return { coins: await db.getSetting('coins'), days: await db.getSetting('practiceDays'),
+             recs: (await db.dbGetAll('recordings')).length };
+  }, exported.json);
+  t('restoring an older backup cannot cost him this week',
+    kept.coins === 999 && kept.days.includes('2026-09-09') && kept.days.length === 4);
+  t('and does not duplicate the recordings already here', kept.recs === 1);
+
+  // The parent dashboard's way in.
+  await page.evaluate(() => window.__nav('parent'));
+  await page.waitForSelector('#backup-btn');
+  t('the parent dashboard offers both', await page.locator('#restore-btn').isVisible());
+  await page.locator('#backup-btn').click();
+  await page.waitForFunction(
+    () => /Saved|shared|MB/.test(document.querySelector('#backup-note')?.textContent || ''),
+    null, { timeout: 8000 }).catch(() => {});
+  t('the save button produces a file',
+    /MB/.test(await page.locator('#backup-note').textContent()),
+    (await page.locator('#backup-note').textContent()).slice(0, 70));
+
+  t('no console errors', errors.length === 0, errors.join(' | '));
+  await browser.close();
+}
+
 // ── The guided tour a therapist gets sent ──
 //
 // It is a static document, so the assertions are: it is reachable, every screen

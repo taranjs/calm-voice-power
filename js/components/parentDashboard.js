@@ -4,6 +4,9 @@ import { navigate } from '../modules/router.js';
 import { playClick } from '../modules/audio.js';
 import { onsetTargetFrom, ONSET_GOAL_MS } from '../modules/voice.js';
 import { storageReport, isInstalled } from '../modules/storage.js';
+import { exportAll, importAll, parseBackup, backupFilename, BackupError } from '../modules/backup.js';
+import { loadState } from '../modules/state.js';
+import { toast } from '../modules/toast.js';
 
 const TIPS = [
   'Celebrate every attempt, not just perfect speech. Say "I love how you kept trying!"',
@@ -194,6 +197,24 @@ export function renderParentDashboard() {
       <p style="font-size:0.85rem;line-height:1.6" id="storage-note">Checking…</p>
     </div>
 
+    <!-- Backup. IndexedDB is scoped to one origin on one device: a new phone or
+         a new web address hands the app an empty database and every recording is
+         gone. Persistence protects against eviction, not against that. -->
+    <div class="card mt-16">
+      <div style="font-weight:800;margin-bottom:8px">📦 Back up or move to a new device</div>
+      <p style="font-size:0.85rem;line-height:1.6;color:var(--ink-soft)">
+        Saves everything — practice days, coins, voice setup and every recording — as one file.
+        Restoring <strong>adds</strong> to what is already here, so nothing on this device is lost.
+        Worth doing before changing phone or if the app moves to a new web address.
+      </p>
+      <div class="action-row mt-16">
+        <button class="btn btn-ghost" id="backup-btn" style="font-size:0.85rem">⬇️ Save a backup</button>
+        <button class="btn btn-ghost" id="restore-btn" style="font-size:0.85rem">⬆️ Restore a backup</button>
+      </div>
+      <input type="file" id="restore-file" accept="application/json,.json" style="display:none" />
+      <p style="font-size:0.8rem;color:var(--ink-faint);margin-top:10px" id="backup-note"></p>
+    </div>
+
     <div class="mt-16 text-center">
       <button class="btn btn-ghost" id="avatar-btn">🎨 Customize Avatar</button>
     </div>
@@ -239,6 +260,86 @@ export function renderParentDashboard() {
         `phone or tablet.${size}`;
     }
   })();
+
+
+  // ── Backup ──────────────────────────────────────
+  const backupBtn  = page.querySelector('#backup-btn');
+  const restoreBtn = page.querySelector('#restore-btn');
+  const fileInput  = page.querySelector('#restore-file');
+  const backupNote = page.querySelector('#backup-note');
+
+  const say = (msg, colour = 'var(--ink-faint)') => {
+    backupNote.style.color = colour;
+    backupNote.textContent = msg;
+  };
+
+  backupBtn.addEventListener('click', async () => {
+    playClick();
+    // Claim the button synchronously: encoding the recordings takes a moment and
+    // a second tap would build the whole file twice.
+    backupBtn.disabled = true;
+    const label = backupBtn.textContent;
+    backupBtn.textContent = 'Saving…';
+    say('Gathering everything…');
+    try {
+      const data = await exportAll();
+      const json = JSON.stringify(data);
+      const file = new File([json], backupFilename(), { type: 'application/json' });
+      const mb   = (file.size / 1048576).toFixed(1);
+
+      // iOS gives no usable download from an installed PWA, so offer the share
+      // sheet where it exists — that is how a file leaves the device there.
+      if (navigator.canShare?.({ files: [file] }) && navigator.share) {
+        await navigator.share({ files: [file], title: 'Calm Voice backup' });
+        say(`Backup shared — ${mb} MB.`, 'var(--mint)');
+      } else {
+        const url = URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.href = url; a.download = file.name;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        say(`Saved ${file.name} — ${mb} MB. Keep it somewhere that is not this device.`, 'var(--mint)');
+      }
+    } catch (e) {
+      if (e?.name === 'AbortError') say('');       // a cancelled share is not an error
+      else say('Could not build the backup. Nothing was changed.', 'var(--coral)');
+    } finally {
+      backupBtn.disabled = false;
+      backupBtn.textContent = label;
+    }
+  });
+
+  restoreBtn.addEventListener('click', () => { playClick(); fileInput.click(); });
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0];
+    if (!file) return;
+    restoreBtn.disabled = true;
+    const label = restoreBtn.textContent;
+    restoreBtn.textContent = 'Restoring…';
+    say('Reading the backup…');
+    try {
+      const added = await importAll(parseBackup(await file.text()));
+      await loadState();   // streak is derived, so it has to be recomputed
+      const bits = [
+        added.days       ? `${added.days} new practice day${added.days === 1 ? '' : 's'}` : '',
+        added.recordings ? `${added.recordings} recording${added.recordings === 1 ? '' : 's'}` : '',
+        added.words      ? `${added.words} word${added.words === 1 ? '' : 's'}` : '',
+      ].filter(Boolean);
+      say(bits.length ? `Restored — ${bits.join(', ')}.` : 'Restored. Nothing new was in that file.',
+          'var(--mint)');
+      toast('Backup restored 📦', 'success');
+      // Re-render so the charts and totals show what just arrived.
+      setTimeout(() => navigate('parent'), 900);
+    } catch (e) {
+      say(e instanceof BackupError ? e.message
+                                   : 'Could not read that backup. Nothing was changed.', 'var(--coral)');
+    } finally {
+      restoreBtn.disabled = false;
+      restoreBtn.textContent = label;
+      fileInput.value = '';   // let the same file be picked again after a failure
+    }
+  });
 
   page.querySelector('#exit-btn').addEventListener('click', () => { playClick(); navigate('home'); });
   page.querySelector('#why-link').addEventListener('click', () => playClick());

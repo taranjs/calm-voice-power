@@ -7,6 +7,7 @@ import { classifyOnset, onsetTargetFrom, setVoiceProfile, voiceThreshold,
 import { todaySeed, dailyGentleWords, dailyPowerWords, dailyPacingSets,
          dailyStretchPhrases, dailyPauseSentences, dailyChallenges,
          dailyTalkPrompts, GENTLE_BANK, PACING_BANK } from './.tmp/content.mjs';
+import { mergeStores, parseBackup, backupFilename, BackupError } from './.tmp/backup.mjs';
 
 let ok = true;
 const t = (name, cond, detail = '') => {
@@ -101,6 +102,83 @@ for (let i = 0; i < 60; i++) {
   dailyGentleWords(10, todaySeed(d, 1)).forEach(w => seen.add(w));
 }
 t('two months of practice draws on a wide pool', seen.size > 40, `${seen.size} distinct words`);
+
+// ── Backup: merging must never cost him anything ──
+// This is the one place where a bug silently destroys months of a child's work,
+// so the rule under test is simply: nothing that was here can go missing.
+console.log('\nBackup merge');
+const S = obj => Object.entries(obj).map(([key, value]) => ({ key, value }));
+const asMap = rows => Object.fromEntries(rows.map(r => [r.key, r.value]));
+
+const here = {
+  settings: S({
+    coins: 120, totalMinutes: 40, bestStreak: 6,
+    practiceDays: ['2026-08-20', '2026-08-21'],
+    bests: { holdMs: 3000, pauseMs: 1000, pacedWords: 4 },
+    unlockedAvatars: ['🐱', '🦊'],
+    avatar: { body: '🦊', name: 'Brave Voice' },
+    voiceProfile: { quiet: 0.02, updatedAt: 2000 },
+  }),
+  sessions:   [{ id: 1, date: '2026-08-20T10:00:00Z', type: 'activity' }],
+  recordings: [{ id: 1, date: '2026-08-20T10:00:00Z', promptId: 'name', blob: 'A' }],
+  words:      [{ id: 'apple', word: 'apple', blob: 'his-take' }],
+};
+const backup = {
+  settings: S({
+    coins: 80, totalMinutes: 95, bestStreak: 9,
+    practiceDays: ['2026-08-21', '2026-08-22'],
+    bests: { holdMs: 1500, pauseMs: 2600, pacedWords: 4 },
+    unlockedAvatars: ['🐱', '🐼'],
+    avatar: { body: '🐼', name: 'Brave Voice' },
+    voiceProfile: { quiet: 0.03, updatedAt: 1000 },
+  }),
+  sessions:   [{ id: 1, date: '2026-08-22T10:00:00Z', type: 'activity' },
+               { id: 2, date: '2026-08-20T10:00:00Z', type: 'activity' }],
+  recordings: [{ id: 1, date: '2026-08-22T09:00:00Z', promptId: 'name', blob: 'B' }],
+  words:      [{ id: 'apple', word: 'apple' }, { id: 'octopus', word: 'octopus' }],
+};
+const m  = mergeStores(here, backup);
+const ms = asMap(m.settings);
+
+t('practice days are unioned, never replaced',
+  ms.practiceDays.join(',') === '2026-08-20,2026-08-21,2026-08-22');
+t('what he earned only ever goes up',
+  ms.coins === 120 && ms.totalMinutes === 95 && ms.bestStreak === 9);
+t('a personal best survives from whichever device set it',
+  ms.bests.holdMs === 3000 && ms.bests.pauseMs === 2600);
+t('unlocked avatars are unioned', ms.unlockedAvatars.length === 3);
+t('the avatar he is wearing here is not overwritten', ms.avatar.body === '🦊');
+t('the more recent voice calibration wins', ms.voiceProfile.updatedAt === 2000);
+t('a session already here is not duplicated', m.sessions.length === 2);
+t('a recording from the other device arrives', m.recordings.length === 2);
+t('his recorded word model is not clobbered by a bare copy',
+  m.words.find(w => w.id === 'apple').blob === 'his-take');
+t('and a word he only has in the backup arrives', m.words.length === 2);
+
+// The direction that matters most: importing must not be able to shrink things.
+const empty = { settings: [], sessions: [], recordings: [], words: [] };
+const ontoEmpty = mergeStores(empty, here);
+t('restoring onto a brand-new device recovers everything',
+  asMap(ontoEmpty.settings).coins === 120 && ontoEmpty.recordings.length === 1
+    && asMap(ontoEmpty.settings).practiceDays.length === 2);
+const withNothing = mergeStores(here, empty);
+t('importing an empty backup takes nothing away',
+  asMap(withNothing.settings).coins === 120 && withNothing.recordings.length === 1);
+t('merging is idempotent — restoring twice changes nothing',
+  mergeStores(m, backup).recordings.length === m.recordings.length &&
+  mergeStores(m, backup).sessions.length === m.sessions.length);
+
+const bad = (text, why) => {
+  try { parseBackup(text); return false; }
+  catch (e) { return e instanceof BackupError && e.message.length > 10; }
+};
+t('a file that is not JSON is refused kindly', bad('not json'));
+t('somebody else\'s JSON is refused', bad('{"app":"something-else"}'));
+t('a backup from a future version is refused',
+  bad(JSON.stringify({ app: 'calm-voice-power', format: 99, stores: {} })));
+t('a real backup parses',
+  parseBackup(JSON.stringify({ app: 'calm-voice-power', format: 1, stores: { settings: [] } })).format === 1);
+t('the filename carries the date', backupFilename(new Date(2026, 7, 28)) === 'calm-voice-backup-2026-08-28.json');
 
 console.log(ok ? '\nUNIT PASS' : '\nUNIT FAIL');
 process.exit(ok ? 0 : 1);
